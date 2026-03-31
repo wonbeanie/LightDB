@@ -21,5 +21,8 @@
     "@types/node": "^25.5.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2"
+  },
+  "dependencies": {
+    "peerjs": "^1.5.5"
   }
 }
