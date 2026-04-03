@@ -1,21 +1,18 @@
-import { ConnectDatabase } from "./database.js";
-import webRTC, { HandlerType } from "./web-rtc.js";
+import liveDatabase, { type DatabaseData } from "./database.js";
+import errorDispatcher from "./error-dispatcher.js";
+import webRTC, { HandlerType, type CloseHandler, type ConnectionHandler, type ErrorHandler, type MessageHandler, type SendHandler } from "./web-rtc.js";
 
 class LightDB {
-  private database : ConnectDatabase;
-
-  constructor(){
-    this.database = new ConnectDatabase();
+  async createRoom(){
+    const peerId = await webRTC.init();
+    liveDatabase.setRoomChief();
+    return peerId;
   }
 
-  createRoom(){
-    this.database.setRoomChief();
-    return this.database.peerId;
-  }
-
-  joinRoom(peerId: string){
+  async joinRoom(targetId: string){
     try{
-      this.database.connect(peerId);
+      await webRTC.init();
+      liveDatabase.connect(targetId);
     }
     catch(err){
       throw err;
@@ -23,44 +20,51 @@ class LightDB {
   }
 
   addListener(table : string, handler : Function){
-    if(this.database === null){
+    if(liveDatabase === null){
       throw new Error("database does not exist.");
     }
-    this.database.setDBListener(table, handler);
+    liveDatabase.setDBListener(table, handler);
   }
 
-  update(table : string = "/", data : Record<string, unknown>){
-    if(this.database === null){
+  async update(table : string = "/", data : DatabaseData){
+    if(liveDatabase === null){
       throw new Error("database does not exist.");
     }
-    this.database.updateDB(table, data);
+    return liveDatabase.updateDB(table, data);
   }
 
-  clear(){
-    if(this.database === null){
+  getDatabase(){
+    return liveDatabase.database;
+  }
+
+  async clear(){
+    if(liveDatabase === null){
       throw new Error("database does not exist.");
     }
-    this.database.clear();
+    return liveDatabase.updateDB("/", {}, {
+      clear: true
+    });
   }
 
-  set onOpen(handler : Function){
-    webRTC.setCustomPeerHandlers(HandlerType.OPEN, handler);
+  set onConnection(handler : ConnectionHandler){
+    webRTC.customHandlers[HandlerType.CONNECTION] = handler;
   }
 
-  set onClose(handler : Function){
-    webRTC.setCustomPeerHandlers(HandlerType.CLOSE, handler);
+  set onClose(handler : CloseHandler){
+    webRTC.customHandlers[HandlerType.CLOSE] = handler;
   }
 
-  set onMessage(handler : Function){
-    webRTC.setCustomPeerHandlers(HandlerType.MESSAGE, handler);
+  set onMessage(handler : MessageHandler){
+    webRTC.customHandlers[HandlerType.MESSAGE] = handler;
   }
 
-  set onError(handler : Function){
-    webRTC.setCustomPeerHandlers(HandlerType.ERROR, handler);
+  set onError(handler : ErrorHandler){
+    webRTC.customHandlers[HandlerType.ERROR] = handler;
+    errorDispatcher.onError = handler;
   }
 
-  set onSend(handler : Function){
-    webRTC.setCustomPeerHandlers(HandlerType.SEND, handler);
+  set onSend(handler : SendHandler){
+    webRTC.customHandlers[HandlerType.SEND] = handler;
   }
 }
 
