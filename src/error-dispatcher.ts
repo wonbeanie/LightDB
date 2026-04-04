@@ -1,19 +1,19 @@
-import type { ErrorHandler } from "./web-rtc.js";
+import eventBus from "./lib/event-bus.js";
+import { EVENT_LIST } from "./lib/event-list.js";
+import type { ErrorHandler } from "./lib/type/web-rtc.js";
 
 class ErrorDispatcher {
   onError : ErrorHandler | null = null;
 
-  dispatch(message : string | Error){
-    if(message instanceof Error){
-      this.dispatch(message.message);
-      return;
-    }
-    
-    const err = new Error(message);
+  constructor(){
+    eventBus.on(EVENT_LIST.ERROR_DISPATCH, (error) => this.dispatch(error as Error));
+  }
+
+  dispatch(error : Error){
     if(this.onError){
-      this.onError(err);
+      this.onError(error);
     }
-    console.error("[LightDB Error]",err);
+    console.error("[LightDB Error]", error);
   }
 }
 

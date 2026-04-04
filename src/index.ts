@@ -1,11 +1,16 @@
-import liveDatabase, { type DatabaseData } from "./database.js";
+import liveDatabase from "./database.js";
 import errorDispatcher from "./error-dispatcher.js";
-import webRTC, { HandlerType, type CloseHandler, type ConnectionHandler, type ErrorHandler, type MessageHandler, type SendHandler } from "./web-rtc.js";
+import type { DatabaseData } from "./lib/type/database.js";
+import { HandlerType, type CloseHandler, type ConnectionHandler, type ErrorHandler, type MessageHandler, type SendHandler } from "./lib/type/web-rtc.js";
+import webRTC from "./web-rtc.js";
 
 class LightDB {
+  roomId : string | null = null;
+
   async createRoom(){
     const peerId = await webRTC.init();
     liveDatabase.setRoomChief();
+    this.roomId = peerId;
     return peerId;
   }
 

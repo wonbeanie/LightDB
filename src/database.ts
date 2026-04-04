@@ -1,5 +1,8 @@
-import errorDispatcher from "./error-dispatcher.js";
-import webRTC from "./web-rtc.js";
+import type { Database, DatabaseData, Listener, ListenerHandler, ListenerKey, TableKey } from "./lib/type/database.js";
+import eventBus from "./lib/event-bus.js";
+import { EVENT_LIST } from "./lib/event-list.js";
+import type { Data } from "./lib/type/web-rtc.js";
+import { errorHandler } from "./lib/utils.js";
 
 class LiveDatabase {
   private _database : Database = new Map();
@@ -7,6 +10,17 @@ class LiveDatabase {
   private updateResolver : ((value ?: unknown) => void) | null = null;
   private roomChief = false;
   private updateTimeoutID : number | null = null;
+
+  constructor(){
+    eventBus.on(EVENT_LIST.UPDATE_DATABASE, (data) => this.onValue(data as Data));
+    eventBus.on(EVENT_LIST.ADD_DATABASE_LISTENER, (data) => {
+      const {table, handler} = data as {
+        table : TableKey,
+        handler : ListenerHandler
+      }
+      this.setDBListener(table, handler);
+    })
+  }
 
   setDBListener(listenerKey : ListenerKey, dbHandler : ListenerHandler){
     this.listener.set(listenerKey, (data : DatabaseData | null) => {
@@ -20,7 +34,7 @@ class LiveDatabase {
   async updateDB(table : TableKey = "/", data : DatabaseData, options = {clear : false}){
     // 임시 한번씩 업데이트 가능
     if(this.updateResolver !== null){
-      throw errorDispatcher.dispatch("The previous operation was not completed.");
+      throw errorHandler("The previous operation was not completed.");
     }
 
     if(this.roomChief){
@@ -32,7 +46,7 @@ class LiveDatabase {
     }
 
     if(Object.keys(data).length > 0 || options.clear){
-      webRTC.send({
+      eventBus.emit(EVENT_LIST.REQUEST_PEER_SEND, {
         table,
         data,
         clear : options.clear
@@ -43,7 +57,7 @@ class LiveDatabase {
       return this.checkUpdate();
     }
     catch(err){
-      throw errorDispatcher.dispatch("Timeout error.");
+      throw errorHandler("Timeout error.");
     }
   }
 
@@ -92,9 +106,9 @@ class LiveDatabase {
     }
 
     if(this.roomChief && send){
-      webRTC.send({
-        data,
+      eventBus.emit(EVENT_LIST.REQUEST_PEER_SEND, {
         table,
+        data,
         clear
       });
     }
@@ -119,7 +133,7 @@ class LiveDatabase {
   }
 
   connect(targetId : string){
-    webRTC.connect(targetId);
+    eventBus.emit(EVENT_LIST.REQUEST_PEER_CONNECT, targetId);
   }
 
   async onClear(){
@@ -134,10 +148,6 @@ class LiveDatabase {
     this.roomChief = true;
   }
 
-  get peerId(){
-    return webRTC.peerId;
-  }
-
   get database(){
     return Object.fromEntries(this._database);
   }
@@ -145,12 +155,3 @@ class LiveDatabase {
 
 const liveDatabase = new LiveDatabase();
 export default liveDatabase;
-
-export type TableKey = string;
-export type DatabaseData = Record<string, unknown>;
-
-type ListenerKey = string;
-type ListenerHandler = Function;
-
-type Database = Map<TableKey, DatabaseData>;
-type Listener = Map<ListenerKey, ListenerHandler>;

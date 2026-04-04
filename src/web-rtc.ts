@@ -1,11 +1,12 @@
 import { DataConnection, Peer } from "peerjs";
-import type { DatabaseData, TableKey } from "./database.js";
-import errorDispatcher from "./error-dispatcher.js";
-import liveDatabase from "./database.js";
+import eventBus from "./lib/event-bus.js";
+import { EVENT_LIST } from "./lib/event-list.js";
+import type { Connections, CustomPeerHandlers, Data, PeerData, PeerID } from "./lib/type/web-rtc.js";
+import { errorHandler } from "./lib/utils.js";
 
 export class WebRTC {
   private connections : Connections = {};
-  private peer_id : PeerID = "";
+  private peerId : PeerID | null = null;
   private peer: Peer | null = null;
   private initPromise : Promise<PeerID> | null = null;
   customHandlers : CustomPeerHandlers = {
@@ -15,15 +16,20 @@ export class WebRTC {
     onSend : () => {}
   };
 
+  constructor(){
+    eventBus.on(EVENT_LIST.REQUEST_PEER_SEND, (data) => this.send(data as Data));
+    eventBus.on(EVENT_LIST.REQUEST_PEER_CONNECT, (data) => this.connect(data as PeerID));
+  }
+
   init(){
     if(this.initPromise) return this.initPromise;
-    if(this.peer) return Promise.resolve(this.peer_id);
+    if(this.peer) return Promise.resolve(this.peerId);
     this.initPromise = new Promise((resolve, reject)=>{
       const peer = new Peer();
       this.peer = peer;
 
       peer.on('open', (id) => {
-        this.peer_id = id;
+        this.peerId = id;
         this.initPromise = null;
         resolve(id);
       });
@@ -36,7 +42,7 @@ export class WebRTC {
         reject(err);
         this.peer = null;
         this.initPromise = null;
-        errorDispatcher.dispatch(err);
+        throw errorHandler(err);
       });
     })
 
@@ -51,7 +57,7 @@ export class WebRTC {
       if(conn.listenerCount('data') === 0){
         conn.on('data', (response) => {
           const {data} = response as PeerData;
-          liveDatabase.onValue(data);
+          eventBus.emit(EVENT_LIST.UPDATE_DATABASE, data);
           this.customHandlers.onMessage(response);
         });
       }
@@ -89,7 +95,7 @@ export class WebRTC {
 
   private close() {
     if(!this.peer){
-      throw errorDispatcher.dispatch("peer does not exist.");
+      throw errorHandler("peer does not exist.");
     }
     for(const conn of Object.values(this.connections)){
       conn.close();
@@ -98,12 +104,12 @@ export class WebRTC {
     this.peer.destroy();
     this.peer = null;
     this.connections = {};
-    this.peer_id = "";
+    this.peerId = null;
   }
 
   connect(targetId : PeerID){
     if(!this.peer){
-      throw errorDispatcher.dispatch("peer does not exist.");
+      throw errorHandler("peer does not exist.");
     }
 
     try{
@@ -115,10 +121,6 @@ export class WebRTC {
     }
   }
 
-  get peerId(){
-    return this.peer_id;
-  }
-
   get connectionsLength(){
     return Object.keys(this.connections).length;
   }
@@ -126,37 +128,3 @@ export class WebRTC {
 
 const webRTC = new WebRTC();
 export default webRTC;
-export interface CustomPeerHandlers {
-  [HandlerType.CONNECTION] : ConnectionHandler;
-  [HandlerType.CLOSE] : CloseHandler;
-  [HandlerType.MESSAGE] : MessageHandler;
-  [HandlerType.ERROR] ?: ErrorHandler;
-  [HandlerType.SEND] : SendHandler;
-}
-
-export const enum HandlerType {
-  CONNECTION = "onConnection",
-  CLOSE = "onClose",
-  MESSAGE = "onMessage",
-  ERROR = "onError",
-  SEND = "onSend"
-}
-
-type Connections = Record<string, DataConnection>;
-type PeerID = string;
-type PeerData = {
-  data : Data,
-  timestamp : number
-};
-
-type Data = {
-  table : TableKey,
-  data : DatabaseData,
-  clear ?: boolean
-}
-
-export type ConnectionHandler = (targetId ?: PeerID) => void;
-export type CloseHandler = (targetId ?: PeerID) => void;
-export type MessageHandler = (data ?: unknown) => void;
-export type ErrorHandler = (err ?: Error | unknown) => void;
-export type SendHandler = () => void;
