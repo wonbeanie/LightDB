@@ -1,11 +1,20 @@
 import liveDatabase from "./database.js";
 import errorDispatcher from "./error-dispatcher.js";
+import eventBus from "./lib/event-bus.js";
+import { EVENT_LIST } from "./lib/event-list.js";
 import type { DatabaseData } from "./lib/type/database.js";
 import { HandlerType, type CloseHandler, type ConnectionHandler, type ErrorHandler, type MessageHandler, type SendHandler } from "./lib/type/web-rtc.js";
+import { formatNow } from "./lib/utils.js";
 import webRTC from "./web-rtc.js";
 
 class LightDB {
   roomId : string | null = null;
+  database = {};
+  updateTimestamp : string = "";
+
+  constructor(){
+    eventBus.on(EVENT_LIST.UPDATE_COMPLETE_DATABASE, () => this.setDatabase());
+  }
 
   async createRoom(){
     const peerId = await webRTC.init();
@@ -38,8 +47,10 @@ class LightDB {
     return liveDatabase.updateDB(table, data);
   }
 
-  getDatabase(){
-    return liveDatabase.database;
+  setDatabase(){
+    this.database = liveDatabase.database;
+    const now = new Date();
+    this.updateTimestamp = formatNow();
   }
 
   async clear(){

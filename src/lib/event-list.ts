@@ -10,5 +10,7 @@ export const enum EVENT_LIST {
   ADD_DATABASE_LISTENER = "database:add:listener",
 
   REQUEST_PEER_SEND = "peer:send",
-  REQUEST_PEER_CONNECT = "peer:connect"
+  REQUEST_PEER_CONNECT = "peer:connect",
+
+  UPDATE_COMPLETE_DATABASE = "database:update:complete"
 }

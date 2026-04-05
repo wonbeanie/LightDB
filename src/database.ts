@@ -105,6 +105,8 @@ class LiveDatabase {
       resolve(this.database);
     }
 
+    eventBus.emit(EVENT_LIST.UPDATE_COMPLETE_DATABASE);
+
     if(this.roomChief && send){
       eventBus.emit(EVENT_LIST.REQUEST_PEER_SEND, {
         table,
