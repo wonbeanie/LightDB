@@ -7,6 +7,7 @@ class ErrorDispatcher {
 
   constructor(){
     eventBus.on(EVENT_LIST.ERROR_DISPATCH, (error) => this.dispatch(error as Error));
+    eventBus.on(EVENT_LIST.ON_ERROR, (handler) => this.onError = handler as ErrorHandler);
   }
 
   dispatch(error : Error){

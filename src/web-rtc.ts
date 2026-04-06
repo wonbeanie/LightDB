@@ -1,7 +1,7 @@
 import { DataConnection, Peer } from "peerjs";
 import eventBus from "./lib/event-bus.js";
 import { EVENT_LIST } from "./lib/event-list.js";
-import type { Connections, CustomPeerHandlers, Data, PeerData, PeerID } from "./lib/type/web-rtc.js";
+import type { CloseHandler, ConnectionHandler, Connections, CustomPeerHandlers, Data, ErrorHandler, MessageHandler, PeerData, PeerID, SendHandler } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
 
 export class WebRTC {
@@ -19,6 +19,11 @@ export class WebRTC {
   constructor(){
     eventBus.on(EVENT_LIST.REQUEST_PEER_SEND, (data) => this.send(data as Data));
     eventBus.on(EVENT_LIST.REQUEST_PEER_CONNECT, (data) => this.connect(data as PeerID));
+    eventBus.on(EVENT_LIST.ON_CONNECTION, (handler) => this.customHandlers.onConnection = handler as ConnectionHandler);
+    eventBus.on(EVENT_LIST.ON_CLOSE, (handler) => this.customHandlers.onClose = handler as CloseHandler);
+    eventBus.on(EVENT_LIST.ON_ERROR, (handler) => this.customHandlers.onError = handler as ErrorHandler);
+    eventBus.on(EVENT_LIST.ON_MESSAGE, (handler) => this.customHandlers.onMessage = handler as MessageHandler);
+    eventBus.on(EVENT_LIST.ON_SEND, (handler) => this.customHandlers.onSend = handler as SendHandler);
   }
 
   init(){

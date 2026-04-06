@@ -1,9 +1,8 @@
 import liveDatabase from "./database.js";
-import errorDispatcher from "./error-dispatcher.js";
 import eventBus from "./lib/event-bus.js";
 import { EVENT_LIST } from "./lib/event-list.js";
 import type { DatabaseData } from "./lib/type/database.js";
-import { HandlerType, type CloseHandler, type ConnectionHandler, type ErrorHandler, type MessageHandler, type SendHandler } from "./lib/type/web-rtc.js";
+import { type CloseHandler, type ConnectionHandler, type ErrorHandler, type MessageHandler, type SendHandler } from "./lib/type/web-rtc.js";
 import { formatNow } from "./lib/utils.js";
 import webRTC from "./web-rtc.js";
 
@@ -49,7 +48,6 @@ class LightDB {
 
   setDatabase(){
     this.database = liveDatabase.database;
-    const now = new Date();
     this.updateTimestamp = formatNow();
   }
 
@@ -63,24 +61,23 @@ class LightDB {
   }
 
   set onConnection(handler : ConnectionHandler){
-    webRTC.customHandlers[HandlerType.CONNECTION] = handler;
+    eventBus.emit(EVENT_LIST.ON_CONNECTION, handler);
   }
 
   set onClose(handler : CloseHandler){
-    webRTC.customHandlers[HandlerType.CLOSE] = handler;
+    eventBus.emit(EVENT_LIST.ON_CLOSE, handler);
   }
 
   set onMessage(handler : MessageHandler){
-    webRTC.customHandlers[HandlerType.MESSAGE] = handler;
+    eventBus.emit(EVENT_LIST.ON_MESSAGE, handler);
   }
 
   set onError(handler : ErrorHandler){
-    webRTC.customHandlers[HandlerType.ERROR] = handler;
-    errorDispatcher.onError = handler;
+    eventBus.emit(EVENT_LIST.ON_ERROR, handler);
   }
 
   set onSend(handler : SendHandler){
-    webRTC.customHandlers[HandlerType.SEND] = handler;
+    eventBus.emit(EVENT_LIST.ON_SEND, handler);
   }
 }
 

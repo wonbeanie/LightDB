@@ -12,5 +12,11 @@ export const enum EVENT_LIST {
   REQUEST_PEER_SEND = "peer:send",
   REQUEST_PEER_CONNECT = "peer:connect",
 
-  UPDATE_COMPLETE_DATABASE = "database:update:complete"
+  UPDATE_COMPLETE_DATABASE = "database:update:complete",
+
+  ON_CONNECTION = "on:connection",
+  ON_CLOSE = "on:close",
+  ON_MESSAGE = "on:message",
+  ON_SEND = "on:send",
+  ON_ERROR = "on:error"
 }
