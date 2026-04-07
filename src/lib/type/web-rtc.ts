@@ -21,16 +21,18 @@ export interface CustomPeerHandlers {
 
 export type Connections = Record<string, DataConnection>;
 export type PeerID = string;
-export type PeerData = {
-  data : Data,
-  timestamp : number
-};
 
-export type Data = {
+export interface WebRtcDispatchPayload {
   table : TableKey,
   data : DatabaseData,
   clear ?: boolean
-}
+};
+
+export type PeerData = {
+  data : WebRtcDispatchPayload,
+  timestamp : number
+};
+
 
 export type ConnectionHandler = (targetId ?: PeerID) => void;
 export type CloseHandler = (targetId ?: PeerID) => void;

@@ -1,13 +1,13 @@
 import { LiveDatabase } from "./database.js";
 import { EventBus } from "./lib/event-bus.js";
-import { EVENT_LIST } from "./lib/event-list.js";
+import { EVENT_LIST, type EventMap } from "./lib/event-list.js";
 import type { DatabaseData } from "./lib/type/database.js";
 import { type CloseHandler, type ConnectionHandler, type ErrorHandler, type MessageHandler, type PeerID, type SendHandler } from "./lib/type/web-rtc.js";
 import { formatNow } from "./lib/utils.js";
 import { WebRTC } from "./web-rtc.js";
 
 const internals = new WeakMap<LightDB, {
-  eventBus: EventBus;
+  eventBus: EventBus<EventMap>;
   liveDatabase: LiveDatabase;
   webRTC: WebRTC;
 }>();
@@ -19,7 +19,7 @@ export class LightDB {
   roomChief = false;
 
   constructor(){
-    const eventBus = new EventBus();
+    const eventBus = new EventBus<EventMap>();
     const liveDatabase = new LiveDatabase(eventBus);
     const webRTC = new WebRTC(eventBus);
     eventBus.on(EVENT_LIST.UPDATE_COMPLETE_DATABASE, () => this.setDatabase());

@@ -1,13 +1,7 @@
+import type { CloseHandler, ConnectionHandler, ErrorHandler, MessageHandler, PeerID, SendHandler, WebRtcDispatchPayload } from "./type/web-rtc.js";
+
 export const enum EVENT_LIST {
   UPDATE_DATABASE = "database:update",
-  ERROR_DISPATCH = "error:dispatch",
-
-
-  CREATE_COMPLETE_ROOM = "room:create:complete",
-
-  REQUEST_INIT_ROOM = "room:init",
-  REQUEST_JOIN_ROOM = "room:join",
-  ADD_DATABASE_LISTENER = "database:add:listener",
 
   REQUEST_PEER_SEND = "peer:send",
   REQUEST_PEER_CONNECT = "peer:connect",
@@ -19,4 +13,19 @@ export const enum EVENT_LIST {
   ON_MESSAGE = "on:message",
   ON_SEND = "on:send",
   ON_ERROR = "on:error"
+}
+
+export interface EventMap {
+  [EVENT_LIST.UPDATE_DATABASE] : WebRtcDispatchPayload;
+
+  [EVENT_LIST.REQUEST_PEER_SEND] : WebRtcDispatchPayload;
+  [EVENT_LIST.REQUEST_PEER_CONNECT] : PeerID;
+
+  [EVENT_LIST.UPDATE_COMPLETE_DATABASE] : void;
+
+  [EVENT_LIST.ON_CONNECTION] : ConnectionHandler;
+  [EVENT_LIST.ON_CLOSE] : CloseHandler;
+  [EVENT_LIST.ON_MESSAGE] : MessageHandler;
+  [EVENT_LIST.ON_SEND] : SendHandler;
+  [EVENT_LIST.ON_ERROR] : ErrorHandler;
 }

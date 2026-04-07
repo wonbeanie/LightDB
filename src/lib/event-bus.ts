@@ -1,32 +1,25 @@
 import type { EVENT_LIST } from "./event-list.js";
 
-export class EventBus {
-  listenerList = new Map<EVENT_LIST, Listener[]>();
+export class EventBus<T extends Record<EVENT_LIST, unknown>> {
+  listenerList: { [K in keyof T]?: Listener<T[K]>[]} = {};
 
-  emit(event : EVENT_LIST, data ?: unknown){
-    const listeners = this.listenerList.get(event);
+  emit<K extends keyof T>(event: K, ...args: T[K] extends void ? [] : [data: T[K]]){
+    const listeners = this.listenerList[event];
     if(listeners){
-      listeners.forEach((callback)=>{
-        callback(data);
-      })
+      listeners.forEach((callback)=>callback(args[0] as T[K]));
     }
   }
 
-  on(event : EVENT_LIST, listener : Listener){
-    const listeners = this.listenerList.get(event);
-
-    if(!listeners){
-      this.listenerList.set(event, [listener]);
-      return;
+  on<K extends keyof T>(event: K, listener: Listener<T[K]>){
+    if(!this.listenerList[event]){
+      this.listenerList[event] = [];
     }
-
-    listeners.push(listener);
-    this.listenerList.set(event, listeners);
+    this.listenerList[event]!.push(listener);
   }
 
-  off(event : EVENT_LIST){
-    this.listenerList.delete(event);
+  off<K extends keyof T>(event: K){
+    delete this.listenerList[event];
   }
 }
 
-type Listener = (data : unknown) => void;
+type Listener<T> = (data: T) => void;

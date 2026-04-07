@@ -1,6 +1,6 @@
 import { DataConnection, Peer } from "peerjs";
-import { EVENT_LIST } from "./lib/event-list.js";
-import type { CloseHandler, ConnectionHandler, Connections, CustomPeerHandlers, Data, ErrorHandler, MessageHandler, PeerData, PeerID, SendHandler } from "./lib/type/web-rtc.js";
+import { EVENT_LIST, type EventMap } from "./lib/event-list.js";
+import type { Connections, CustomPeerHandlers, PeerData, PeerID, WebRtcDispatchPayload } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
 import type { EventBus } from "./lib/event-bus.js";
 
@@ -17,14 +17,14 @@ export class WebRTC {
     onError : () => {}
   };
 
-  constructor(private eventBus: EventBus){
-    this.eventBus.on(EVENT_LIST.REQUEST_PEER_SEND, (data) => this.send(data as Data));
-    this.eventBus.on(EVENT_LIST.REQUEST_PEER_CONNECT, (data) => this.connect(data as PeerID));
-    this.eventBus.on(EVENT_LIST.ON_CONNECTION, (handler) => this.customHandlers.onConnection = handler as ConnectionHandler);
-    this.eventBus.on(EVENT_LIST.ON_CLOSE, (handler) => this.customHandlers.onClose = handler as CloseHandler);
-    this.eventBus.on(EVENT_LIST.ON_MESSAGE, (handler) => this.customHandlers.onMessage = handler as MessageHandler);
-    this.eventBus.on(EVENT_LIST.ON_SEND, (handler) => this.customHandlers.onSend = handler as SendHandler);
-    this.eventBus.on(EVENT_LIST.ON_ERROR, (handler) => this.customHandlers.onError = handler as ErrorHandler);
+  constructor(private eventBus: EventBus<EventMap>){
+    this.eventBus.on(EVENT_LIST.REQUEST_PEER_SEND, (data : WebRtcDispatchPayload) => this.send(data));
+    this.eventBus.on(EVENT_LIST.REQUEST_PEER_CONNECT, (data : PeerID) => this.connect(data));
+    this.eventBus.on(EVENT_LIST.ON_CONNECTION, (handler) => this.customHandlers.onConnection = handler);
+    this.eventBus.on(EVENT_LIST.ON_CLOSE, (handler) => this.customHandlers.onClose = handler);
+    this.eventBus.on(EVENT_LIST.ON_MESSAGE, (handler) => this.customHandlers.onMessage = handler);
+    this.eventBus.on(EVENT_LIST.ON_SEND, (handler) => this.customHandlers.onSend = handler);
+    this.eventBus.on(EVENT_LIST.ON_ERROR, (handler) => this.customHandlers.onError = handler);
   }
 
   init(){
@@ -79,7 +79,7 @@ export class WebRTC {
     });
   }
 
-  send(data : Data){
+  send(data : WebRtcDispatchPayload){
     try{
       const sendData : PeerData = {
         data,

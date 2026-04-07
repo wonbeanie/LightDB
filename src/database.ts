@@ -1,6 +1,6 @@
 import type { Database, DatabaseData, Listener, ListenerHandler, ListenerKey, TableKey } from "./lib/type/database.js";
-import { EVENT_LIST } from "./lib/event-list.js";
-import type { Data } from "./lib/type/web-rtc.js";
+import { EVENT_LIST, type EventMap } from "./lib/event-list.js";
+import type { WebRtcDispatchPayload } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
 import type { EventBus } from "./lib/event-bus.js";
 
@@ -11,16 +11,9 @@ export class LiveDatabase {
   private roomChief = false;
   private updateTimeoutID : number | null = null;
 
-  constructor(private eventBus: EventBus){
+  constructor(private eventBus: EventBus<EventMap>){
     this.eventBus = eventBus;
-    this.eventBus.on(EVENT_LIST.UPDATE_DATABASE, (data) => this.onValue(data as Data));
-    this.eventBus.on(EVENT_LIST.ADD_DATABASE_LISTENER, (data) => {
-      const {table, handler} = data as {
-        table : TableKey,
-        handler : ListenerHandler
-      }
-      this.addDBListener(table, handler);
-    })
+    this.eventBus.on(EVENT_LIST.UPDATE_DATABASE, (data : WebRtcDispatchPayload) => this.onValue(data));
   }
 
   addDBListener(listenerKey : ListenerKey, dbHandler : ListenerHandler){
@@ -83,11 +76,7 @@ export class LiveDatabase {
     });
   }
 
-  onValue({table, data, clear = false} : {
-    table : TableKey,
-    data : DatabaseData,
-    clear ?: boolean
-  }, send = true){
+  onValue({table, data, clear = false} : WebRtcDispatchPayload, send = true){
     if(clear){
       this._database = new Map();
       this.emitAllCallback();
