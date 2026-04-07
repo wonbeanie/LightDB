@@ -15,8 +15,8 @@ export interface CustomPeerHandlers {
   [HandlerType.CONNECTION] : ConnectionHandler;
   [HandlerType.CLOSE] : CloseHandler;
   [HandlerType.MESSAGE] : MessageHandler;
-  [HandlerType.ERROR] ?: ErrorHandler;
   [HandlerType.SEND] : SendHandler;
+  [HandlerType.ERROR] : ErrorHandler;
 }
 
 export type Connections = Record<string, DataConnection>;

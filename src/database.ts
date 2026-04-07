@@ -1,19 +1,20 @@
 import type { Database, DatabaseData, Listener, ListenerHandler, ListenerKey, TableKey } from "./lib/type/database.js";
-import eventBus from "./lib/event-bus.js";
 import { EVENT_LIST } from "./lib/event-list.js";
 import type { Data } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
+import type { EventBus } from "./lib/event-bus.js";
 
-class LiveDatabase {
+export class LiveDatabase {
   private _database : Database = new Map();
   private listener : Listener = new Map();
   private updateResolver : ((value ?: unknown) => void) | null = null;
   private roomChief = false;
   private updateTimeoutID : number | null = null;
 
-  constructor(){
-    eventBus.on(EVENT_LIST.UPDATE_DATABASE, (data) => this.onValue(data as Data));
-    eventBus.on(EVENT_LIST.ADD_DATABASE_LISTENER, (data) => {
+  constructor(private eventBus: EventBus){
+    this.eventBus = eventBus;
+    this.eventBus.on(EVENT_LIST.UPDATE_DATABASE, (data) => this.onValue(data as Data));
+    this.eventBus.on(EVENT_LIST.ADD_DATABASE_LISTENER, (data) => {
       const {table, handler} = data as {
         table : TableKey,
         handler : ListenerHandler
@@ -50,7 +51,7 @@ class LiveDatabase {
     }
 
     if(Object.keys(data).length > 0 || options.clear){
-      eventBus.emit(EVENT_LIST.REQUEST_PEER_SEND, {
+      this.eventBus.emit(EVENT_LIST.REQUEST_PEER_SEND, {
         table,
         data,
         clear : options.clear
@@ -109,10 +110,10 @@ class LiveDatabase {
       resolve(this.database);
     }
 
-    eventBus.emit(EVENT_LIST.UPDATE_COMPLETE_DATABASE);
+    this.eventBus.emit(EVENT_LIST.UPDATE_COMPLETE_DATABASE);
 
     if(this.roomChief && send){
-      eventBus.emit(EVENT_LIST.REQUEST_PEER_SEND, {
+      this.eventBus.emit(EVENT_LIST.REQUEST_PEER_SEND, {
         table,
         data,
         clear
@@ -139,7 +140,7 @@ class LiveDatabase {
   }
 
   connect(targetId : string){
-    eventBus.emit(EVENT_LIST.REQUEST_PEER_CONNECT, targetId);
+    this.eventBus.emit(EVENT_LIST.REQUEST_PEER_CONNECT, targetId);
   }
 
   async onClear(){
@@ -158,6 +159,3 @@ class LiveDatabase {
     return Object.fromEntries(this._database);
   }
 }
-
-const liveDatabase = new LiveDatabase();
-export default liveDatabase;

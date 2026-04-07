@@ -1,6 +1,6 @@
 import type { EVENT_LIST } from "./event-list.js";
 
-class EventBus {
+export class EventBus {
   listenerList = new Map<EVENT_LIST, Listener[]>();
 
   emit(event : EVENT_LIST, data ?: unknown){
@@ -28,8 +28,5 @@ class EventBus {
     this.listenerList.delete(event);
   }
 }
-
-const eventBus = new EventBus();
-export default eventBus;
 
 type Listener = (data : unknown) => void;
