@@ -1,8 +1,8 @@
 import liveDatabase from "./database.js";
 import eventBus from "./lib/event-bus.js";
 import { EVENT_LIST } from "./lib/event-list.js";
-import type { DatabaseData } from "./lib/type/database.js";
-import { type CloseHandler, type ConnectionHandler, type ErrorHandler, type MessageHandler, type SendHandler } from "./lib/type/web-rtc.js";
+import type { DatabaseData, ListenerHandler, ListenerKey } from "./lib/type/database.js";
+import { type CloseHandler, type ConnectionHandler, type ErrorHandler, type MessageHandler, type PeerID, type SendHandler } from "./lib/type/web-rtc.js";
 import { formatNow } from "./lib/utils.js";
 import webRTC from "./web-rtc.js";
 
@@ -10,6 +10,7 @@ class LightDB {
   roomId : string | null = null;
   database = {};
   updateTimestamp : string = "";
+  roomChief = false;
 
   constructor(){
     eventBus.on(EVENT_LIST.UPDATE_COMPLETE_DATABASE, () => this.setDatabase());
@@ -18,6 +19,7 @@ class LightDB {
   async createRoom(){
     const peerId = await webRTC.init();
     liveDatabase.setRoomChief();
+    this.roomChief = true;
     this.roomId = peerId;
     return peerId;
   }
@@ -37,7 +39,14 @@ class LightDB {
     if(liveDatabase === null){
       throw new Error("database does not exist.");
     }
-    liveDatabase.setDBListener(table, handler);
+    liveDatabase.addDBListener(table, handler);
+  }
+
+  removeListener(table : string){
+    if(liveDatabase === null){
+      throw new Error("database does not exist.");
+    }
+    liveDatabase.removeDBListener(table);
   }
 
   async update(table : string = "/", data : DatabaseData){

@@ -18,17 +18,21 @@ class LiveDatabase {
         table : TableKey,
         handler : ListenerHandler
       }
-      this.setDBListener(table, handler);
+      this.addDBListener(table, handler);
     })
   }
 
-  setDBListener(listenerKey : ListenerKey, dbHandler : ListenerHandler){
+  addDBListener(listenerKey : ListenerKey, dbHandler : ListenerHandler){
     this.listener.set(listenerKey, (data : DatabaseData | null) => {
       if(data === null){
         return;
       }
       dbHandler(data);
     });
+  }
+
+  removeDBListener(listenerKey : ListenerKey){
+    this.listener.delete(listenerKey);
   }
 
   async updateDB(table : TableKey = "/", data : DatabaseData, options = {clear : false}){
