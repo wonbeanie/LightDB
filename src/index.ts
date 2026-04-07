@@ -26,6 +26,7 @@ class LightDB {
     try{
       await webRTC.init();
       liveDatabase.connect(targetId);
+      this.roomId = targetId;
     }
     catch(err){
       throw err;
