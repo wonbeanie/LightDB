@@ -20,6 +20,10 @@ export class EventBus<T extends Record<EVENT_LIST, unknown>> {
   off<K extends keyof T>(event: K){
     delete this.listenerList[event];
   }
+
+  destroy(){
+    this.listenerList = {};
+  }
 }
 
 type Listener<T> = (data: T) => void;

@@ -92,6 +92,21 @@ export class LightDB {
     const {eventBus} = internals.get(this)!;
     eventBus.emit(EVENT_LIST.OFF_LISTENER, event);
   }
+
+  destroy(){
+    const internal = internals.get(this);
+    if(!internal) return;
+
+    const {webRTC, liveDatabase, eventBus} = internal;
+
+    webRTC.destroy();
+    liveDatabase.destroy();
+    eventBus.destroy();
+    internals.delete(this);
+    this.roomId = null;
+    this.database = {};
+    this.roomChief = false;
+  }
 }
 
 const lightDB = new LightDB();

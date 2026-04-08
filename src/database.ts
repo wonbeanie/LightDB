@@ -144,6 +144,17 @@ export class LiveDatabase {
     this.roomChief = true;
   }
 
+  destroy(){
+    this.listener.clear();
+    if(this.updateTimeoutID !== null){
+      clearTimeout(this.updateTimeoutID);
+      this.updateTimeoutID = null;
+    }
+
+    this.updateResolver = null;
+    this._database = new Map();
+  }
+
   get database(){
     return Object.fromEntries(this._database);
   }

@@ -128,6 +128,26 @@ export class WebRTC {
     }
   }
 
+  destroy(){
+    Object.values(this.connections).forEach(conn => conn.close());
+    this.connections = {};
+
+    if(this.peer){
+      this.peer.destroy();
+      this.peer = null;
+    }
+
+    this.peerId = null;
+    this.initPromise = null;
+    this.customHandlers = {
+      connection: () => {},
+      close: () => {},
+      message: () => {},
+      send: () => {},
+      error: () => {}
+    };
+  }
+
   get connectionsLength(){
     return Object.keys(this.connections).length;
   }
