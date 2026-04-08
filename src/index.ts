@@ -2,7 +2,7 @@ import { LiveDatabase } from "./database.js";
 import { EventBus } from "./lib/event-bus.js";
 import { EVENT_LIST, type EventMap } from "./lib/event-list.js";
 import type { DatabaseData } from "./lib/type/database.js";
-import { type CloseHandler, type ConnectionHandler, type ErrorHandler, type MessageHandler, type PeerID, type SendHandler } from "./lib/type/web-rtc.js";
+import { HandlerType , type PeerEventMap  } from "./lib/type/web-rtc.js";
 import { formatNow } from "./lib/utils.js";
 import { WebRTC } from "./web-rtc.js";
 
@@ -80,29 +80,12 @@ export class LightDB {
     });
   }
 
-  set onConnection(handler : ConnectionHandler){
+  on<K extends HandlerType>(event : K, handler: PeerEventMap[K]){
     const {eventBus} = internals.get(this)!;
-    eventBus.emit(EVENT_LIST.ON_CONNECTION, handler);
-  }
-
-  set onClose(handler : CloseHandler){
-    const {eventBus} = internals.get(this)!;
-    eventBus.emit(EVENT_LIST.ON_CLOSE, handler);
-  }
-
-  set onMessage(handler : MessageHandler){
-    const {eventBus} = internals.get(this)!;
-    eventBus.emit(EVENT_LIST.ON_MESSAGE, handler);
-  }
-
-  set onError(handler : ErrorHandler){
-    const {eventBus} = internals.get(this)!;
-    eventBus.emit(EVENT_LIST.ON_ERROR, handler);
-  }
-
-  set onSend(handler : SendHandler){
-    const {eventBus} = internals.get(this)!;
-    eventBus.emit(EVENT_LIST.ON_SEND, handler);
+    eventBus.emit(EVENT_LIST.ON_LISTENER, {
+      event,
+      handler
+    });
   }
 }
 

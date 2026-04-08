@@ -1,6 +1,6 @@
 import { DataConnection, Peer } from "peerjs";
 import { EVENT_LIST, type EventMap } from "./lib/event-list.js";
-import type { Connections, CustomPeerHandlers, PeerData, PeerID, WebRtcDispatchPayload } from "./lib/type/web-rtc.js";
+import type { Connections, PeerEventMap, PeerData, PeerID, WebRtcDispatchPayload, HandlerType } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
 import type { EventBus } from "./lib/event-bus.js";
 
@@ -9,22 +9,22 @@ export class WebRTC {
   private peerId : PeerID | null = null;
   private peer: Peer | null = null;
   private initPromise : Promise<PeerID> | null = null;
-  customHandlers : CustomPeerHandlers = {
-    onConnection : () => {},
-    onClose : () => {},
-    onMessage : () => {},
-    onSend : () => {},
-    onError : () => {}
+  customHandlers : PeerEventMap = {
+    connection : () => {},
+    close : () => {},
+    message : () => {},
+    send : () => {},
+    error : () => {}
   };
 
   constructor(private eventBus: EventBus<EventMap>){
     this.eventBus.on(EVENT_LIST.REQUEST_PEER_SEND, (data : WebRtcDispatchPayload) => this.send(data));
     this.eventBus.on(EVENT_LIST.REQUEST_PEER_CONNECT, (data : PeerID) => this.connect(data));
-    this.eventBus.on(EVENT_LIST.ON_CONNECTION, (handler) => this.customHandlers.onConnection = handler);
-    this.eventBus.on(EVENT_LIST.ON_CLOSE, (handler) => this.customHandlers.onClose = handler);
-    this.eventBus.on(EVENT_LIST.ON_MESSAGE, (handler) => this.customHandlers.onMessage = handler);
-    this.eventBus.on(EVENT_LIST.ON_SEND, (handler) => this.customHandlers.onSend = handler);
-    this.eventBus.on(EVENT_LIST.ON_ERROR, (handler) => this.customHandlers.onError = handler);
+    this.eventBus.on(EVENT_LIST.ON_LISTENER, ({event, handler}) => this.setHandler(event, handler));
+  }
+
+  private setHandler<K extends HandlerType>(event: K, handler : PeerEventMap[K]){
+    this.customHandlers[event] = handler;
   }
 
   init(){
@@ -64,18 +64,18 @@ export class WebRTC {
         conn.on('data', (response) => {
           const {data} = response as PeerData;
           this.eventBus.emit(EVENT_LIST.UPDATE_DATABASE, data);
-          this.customHandlers.onMessage(response);
+          this.customHandlers.message(response);
         });
       }
 
       if(conn.listenerCount('close') === 0){
         conn.on('close', () => {
           delete this.connections[conn.peer];
-          this.customHandlers.onClose(conn.peer);
+          this.customHandlers.close(conn.peer);
         });
       }
 
-      this.customHandlers.onConnection(conn.peer);
+      this.customHandlers.connection(conn.peer);
     });
   }
 
@@ -92,7 +92,7 @@ export class WebRTC {
         }
       }
 
-      this.customHandlers.onSend();
+      this.customHandlers.send();
     }
     catch(err){
       throw err;

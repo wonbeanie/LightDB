@@ -2,22 +2,23 @@ import type { DataConnection } from "peerjs";
 import type { DatabaseData, TableKey } from "./database.js";
 
 export const HandlerType = {
-  CONNECTION : "onConnection",
-  CLOSE : "onClose",
-  MESSAGE : "onMessage",
-  ERROR : "onError",
-  SEND : "onSend"
+  CONNECTION : "connection",
+  CLOSE : "close",
+  MESSAGE : "message",
+  ERROR : "error",
+  SEND : "send"
 } as const;
 
-type HandlerType = typeof HandlerType[keyof typeof HandlerType];
+export type HandlerType = typeof HandlerType[keyof typeof HandlerType];
 
-export interface CustomPeerHandlers {
+export interface PeerEventMap {
   [HandlerType.CONNECTION] : ConnectionHandler;
   [HandlerType.CLOSE] : CloseHandler;
   [HandlerType.MESSAGE] : MessageHandler;
   [HandlerType.SEND] : SendHandler;
   [HandlerType.ERROR] : ErrorHandler;
 }
+export type PeerHandler = PeerEventMap[keyof PeerEventMap];
 
 export type Connections = Record<string, DataConnection>;
 export type PeerID = string;
@@ -32,7 +33,6 @@ export type PeerData = {
   data : WebRtcDispatchPayload,
   timestamp : number
 };
-
 
 export type ConnectionHandler = (targetId ?: PeerID) => void;
 export type CloseHandler = (targetId ?: PeerID) => void;
