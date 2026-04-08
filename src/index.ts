@@ -52,12 +52,12 @@ export class LightDB {
     }
   }
 
-  addListener(table : string, handler : Function){
+  on(table : string, handler : Function){
     const {liveDatabase} = internals.get(this)!;
     liveDatabase.addDBListener(table, handler);
   }
 
-  removeListener(table : string){
+  off(table : string){
     const {liveDatabase} = internals.get(this)!;
     liveDatabase.removeDBListener(table);
   }
@@ -80,12 +80,17 @@ export class LightDB {
     });
   }
 
-  on<K extends HandlerType>(event : K, handler: PeerEventMap[K]){
+  onPeer<K extends HandlerType>(event : K, handler: PeerEventMap[K]){
     const {eventBus} = internals.get(this)!;
     eventBus.emit(EVENT_LIST.ON_LISTENER, {
       event,
       handler
     });
+  }
+
+  offPeer<K extends HandlerType>(event : K){
+    const {eventBus} = internals.get(this)!;
+    eventBus.emit(EVENT_LIST.OFF_LISTENER, event);
   }
 }
 

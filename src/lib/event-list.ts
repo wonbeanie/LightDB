@@ -9,6 +9,7 @@ export const enum EVENT_LIST {
   UPDATE_COMPLETE_DATABASE = "database:update:complete",
 
   ON_LISTENER = "on:listener",
+  OFF_LISTENER = "off:listener"
 }
 
 export interface EventMap {
@@ -22,5 +23,7 @@ export interface EventMap {
   [EVENT_LIST.ON_LISTENER] : {
     event : HandlerType,
     handler : PeerEventMap[HandlerType],
-  }
+  };
+
+  [EVENT_LIST.OFF_LISTENER] : HandlerType;
 }
