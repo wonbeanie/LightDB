@@ -9,6 +9,9 @@ export class WebRTC {
   private peerId : PeerID | null = null;
   private peer: Peer | null = null;
   private initPromise : Promise<PeerID> | null = null;
+  private reconnectCount = new Map<PeerID, number>();
+  maxReconnectCount = 5;
+  reconnectTimeout = 5000;
   customHandlers : PeerEventMap = {
     connection : () => {},
     close : () => {},
@@ -22,6 +25,10 @@ export class WebRTC {
     this.eventBus.on(EVENT_LIST.REQUEST_PEER_CONNECT, (data : PeerID) => this.connect(data));
     this.eventBus.on(EVENT_LIST.ON_LISTENER, ({event, handler}) => this.setHandler(event, handler));
     this.eventBus.on(EVENT_LIST.OFF_LISTENER, (event) => this.setHandler(event, () => {}));
+    this.eventBus.on(EVENT_LIST.SET_WEBRTC_CONFIG, (config) => {
+      this.maxReconnectCount = config.maxReconnectCount ?? this.maxReconnectCount;
+      this.reconnectTimeout = config.reconnectTimeout ?? this.reconnectTimeout;
+    });
   }
 
   private setHandler<K extends HandlerType>(event: K, handler : PeerEventMap[K]){
@@ -51,6 +58,10 @@ export class WebRTC {
         this.initPromise = null;
         throw errorHandler(err);
       });
+
+      peer.on("disconnected", () => {
+        this.handleDisconnect(peer.id);
+      });
     })
 
     return this.initPromise;
@@ -60,6 +71,7 @@ export class WebRTC {
     if (this.connections[conn.peer]) return;
     conn.on('open', () => {
       this.connections[conn.peer] = conn;
+      this.reconnectCount.set(conn.peer, 0);
 
       if(conn.listenerCount('data') === 0){
         conn.on('data', (response) => {
@@ -71,13 +83,50 @@ export class WebRTC {
 
       if(conn.listenerCount('close') === 0){
         conn.on('close', () => {
-          delete this.connections[conn.peer];
-          this.customHandlers.close(conn.peer);
+          this.handleDisconnect(conn.peer, () => {
+            this.customHandlers.close(conn.peer);
+          });
+        });
+      }
+
+      if(conn.listenerCount('error') === 0){
+        conn.on('error', (err) => {
+          this.handleDisconnect(conn.peer, ()=>{
+            this.customHandlers.error(err);
+          });
         });
       }
 
       this.customHandlers.connection(conn.peer);
     });
+  }
+
+  handleDisconnect(peerId : PeerID, endDisconnect : () => void = () => {}) {
+    delete this.connections[peerId];
+
+    if(this.peer && this.peer.destroyed){
+      console.log("서버와 정상적으로 연결이 끊겼습니다.");
+      endDisconnect();
+      return;
+    }
+
+    const reconnectCount = this.reconnectCount.get(peerId) || 0;
+    if(reconnectCount === this.maxReconnectCount){
+      console.log("재연결이 실패하였습니다. 잠시후 재시도 해주세요.");
+      this.reconnectCount.delete(peerId);
+      endDisconnect();
+      return;
+    }
+    console.log("오류로 인해 상대방과의 연결이 종료되었습니다. 5초 후 재연결을 시도합니다...");
+    setTimeout(() => {
+      this.reconnectCount.set(peerId, reconnectCount + 1);
+      if(this.peerId === peerId && this.peer){
+        this.peer.reconnect()
+        return;
+      }
+
+      this.connect(peerId);
+    }, this.reconnectTimeout);
   }
 
   send(data : WebRtcDispatchPayload){
@@ -98,20 +147,6 @@ export class WebRTC {
     catch(err){
       throw err;
     }
-  }
-
-  private close() {
-    if(!this.peer){
-      throw errorHandler("peer does not exist.");
-    }
-    for(const conn of Object.values(this.connections)){
-      conn.close();
-    }
-    this.peer.disconnect();
-    this.peer.destroy();
-    this.peer = null;
-    this.connections = {};
-    this.peerId = null;
   }
 
   connect(targetId : PeerID){

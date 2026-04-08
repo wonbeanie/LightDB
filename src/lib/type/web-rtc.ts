@@ -39,3 +39,8 @@ export type CloseHandler = (targetId ?: PeerID) => void;
 export type MessageHandler = (data ?: unknown) => void;
 export type ErrorHandler = (err ?: Error | unknown) => void;
 export type SendHandler = () => void;
+
+export interface WebRtcConfig {
+  maxReconnectCount ?: number;
+  reconnectTimeout ?: number;
+}

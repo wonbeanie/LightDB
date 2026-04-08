@@ -1,4 +1,4 @@
-import type { CloseHandler, ConnectionHandler, ErrorHandler, HandlerType, MessageHandler, PeerEventMap, PeerID, SendHandler, WebRtcDispatchPayload } from "./type/web-rtc.js";
+import type { CloseHandler, ConnectionHandler, ErrorHandler, HandlerType, MessageHandler, PeerEventMap, PeerID, SendHandler, WebRtcConfig, WebRtcDispatchPayload } from "./type/web-rtc.js";
 
 export const enum EVENT_LIST {
   UPDATE_DATABASE = "database:update",
@@ -9,7 +9,9 @@ export const enum EVENT_LIST {
   UPDATE_COMPLETE_DATABASE = "database:update:complete",
 
   ON_LISTENER = "on:listener",
-  OFF_LISTENER = "off:listener"
+  OFF_LISTENER = "off:listener",
+
+  SET_WEBRTC_CONFIG = "webrtc:set:config",
 }
 
 export interface EventMap {
@@ -26,4 +28,5 @@ export interface EventMap {
   };
 
   [EVENT_LIST.OFF_LISTENER] : HandlerType;
+  [EVENT_LIST.SET_WEBRTC_CONFIG] : WebRtcConfig;
 }
