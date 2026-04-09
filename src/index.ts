@@ -2,7 +2,8 @@ import { LiveDatabase } from "./database.js";
 import { EventBus } from "./lib/event-bus.js";
 import { EVENT_LIST, type EventMap } from "./lib/event-list.js";
 import type { DatabaseData } from "./lib/type/database.js";
-import { HandlerType , type PeerEventMap, type WebRtcConfig  } from "./lib/type/web-rtc.js";
+import type { Config } from "./lib/type/light-db.js";
+import { HandlerType , type PeerEventMap } from "./lib/type/web-rtc.js";
 import { formatNow } from "./lib/utils.js";
 import { WebRTC } from "./web-rtc.js";
 
@@ -18,17 +19,20 @@ export class LightDB {
   updateTimestamp : string = "";
   roomChief = false;
 
-  constructor(){
+  constructor(config ?: Config){
     const eventBus = new EventBus<EventMap>();
     const liveDatabase = new LiveDatabase(eventBus);
     const webRTC = new WebRTC(eventBus);
     eventBus.on(EVENT_LIST.UPDATE_COMPLETE_DATABASE, () => this.setDatabase());
+    eventBus.emit(EVENT_LIST.SET_DATABASE_CONFIG, config?.database);
+    eventBus.emit(EVENT_LIST.SET_WEBRTC_CONFIG, config?.webRtc);    
 
     internals.set(this, {
       eventBus,
       liveDatabase,
       webRTC
-    })
+    });
+
   }
 
   async createRoom(){
@@ -71,11 +75,6 @@ export class LightDB {
     const {liveDatabase} = internals.get(this)!;
     this.database = liveDatabase.database;
     this.updateTimestamp = formatNow();
-  }
-
-  setWebRtcConfig(config : WebRtcConfig){
-    const {eventBus} = internals.get(this)!;
-    eventBus.emit(EVENT_LIST.SET_WEBRTC_CONFIG, config);
   }
 
   async clear(){

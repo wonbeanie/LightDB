@@ -1,4 +1,4 @@
-import type { Database, DatabaseData, Listener, ListenerHandler, ListenerKey, TableKey } from "./lib/type/database.js";
+import type { Database, DatabaseConfig, DatabaseData, Listener, ListenerHandler, ListenerKey, TableKey } from "./lib/type/database.js";
 import { EVENT_LIST, type EventMap } from "./lib/event-list.js";
 import type { WebRtcDispatchPayload } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
@@ -10,10 +10,13 @@ export class LiveDatabase {
   private updateResolver : ((value ?: unknown) => void) | null = null;
   private roomChief = false;
   private updateTimeoutID : number | null = null;
+  private updateTimeout : number = 5000;
 
   constructor(private eventBus: EventBus<EventMap>){
-    this.eventBus = eventBus;
     this.eventBus.on(EVENT_LIST.UPDATE_DATABASE, (data : WebRtcDispatchPayload) => this.onValue(data));
+    this.eventBus.on(EVENT_LIST.SET_DATABASE_CONFIG, (config) => {
+      this.updateTimeout = config?.updateTimeout ?? this.updateTimeout;
+    });
   }
 
   addDBListener(listenerKey : ListenerKey, dbHandler : ListenerHandler){
@@ -72,7 +75,7 @@ export class LiveDatabase {
         reject(true);
         this.updateResolver = null;
         this.updateTimeoutID = null;
-      }, 5000);
+      }, this.updateTimeout);
     });
   }
 

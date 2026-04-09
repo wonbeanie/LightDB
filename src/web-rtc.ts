@@ -26,8 +26,8 @@ export class WebRTC {
     this.eventBus.on(EVENT_LIST.ON_LISTENER, ({event, handler}) => this.setHandler(event, handler));
     this.eventBus.on(EVENT_LIST.OFF_LISTENER, (event) => this.setHandler(event, () => {}));
     this.eventBus.on(EVENT_LIST.SET_WEBRTC_CONFIG, (config) => {
-      this.maxReconnectCount = config.maxReconnectCount ?? this.maxReconnectCount;
-      this.reconnectTimeout = config.reconnectTimeout ?? this.reconnectTimeout;
+      this.maxReconnectCount = config?.maxReconnectCount ?? this.maxReconnectCount;
+      this.reconnectTimeout = config?.reconnectTimeout ?? this.reconnectTimeout;
     });
   }
 
