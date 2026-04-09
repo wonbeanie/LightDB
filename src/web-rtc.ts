@@ -1,8 +1,10 @@
 import { DataConnection, Peer } from "peerjs";
 import { EVENT_LIST, type EventMap } from "./lib/event-list.js";
-import type { Connections, PeerEventMap, PeerData, PeerID, WebRtcDispatchPayload, HandlerType } from "./lib/type/web-rtc.js";
+import { type Connections, type PeerEventMap, type PeerID, type WebRtcDispatchPayload, type HandlerType, PeerDataType, type PeerData } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
 import type { EventBus } from "./lib/event-bus.js";
+import type { Database, DatabaseData, DatabaseEntries } from "./lib/type/database.js";
+import { createPeerData } from "./lib/dto/peer-data.js";
 
 export class WebRTC {
   private connections : Connections = {};
@@ -25,14 +27,11 @@ export class WebRTC {
     this.eventBus.on(EVENT_LIST.REQUEST_PEER_CONNECT, (data : PeerID) => this.connect(data));
     this.eventBus.on(EVENT_LIST.ON_LISTENER, ({event, handler}) => this.setHandler(event, handler));
     this.eventBus.on(EVENT_LIST.OFF_LISTENER, (event) => this.setHandler(event, () => {}));
+    this.eventBus.on(EVENT_LIST.REQUEST_SYNC_DATABASE, (data) => this.sendSyncDatabase(data));
     this.eventBus.on(EVENT_LIST.SET_WEBRTC_CONFIG, (config) => {
       this.maxReconnectCount = config?.maxReconnectCount ?? this.maxReconnectCount;
       this.reconnectTimeout = config?.reconnectTimeout ?? this.reconnectTimeout;
     });
-  }
-
-  private setHandler<K extends HandlerType>(event: K, handler : PeerEventMap[K]){
-    this.customHandlers[event] = handler;
   }
 
   init(){
@@ -67,6 +66,21 @@ export class WebRTC {
     return this.initPromise;
   }
 
+  private sendSyncDatabase({database, peerId} : {
+      database: Database;
+      peerId: PeerID;
+  }){
+    const conn = this.connections[peerId];
+    if(conn){
+      const sendData = createPeerData<DatabaseEntries>([...database], this.peerId!, PeerDataType.SYNC);
+      conn.send(sendData);
+    }
+  }
+
+  private setHandler<K extends HandlerType>(event: K, handler : PeerEventMap[K]){
+    this.customHandlers[event] = handler;
+  }
+
   private handleConnection = (conn : DataConnection) => {
     if (this.connections[conn.peer]) return;
     conn.on('open', () => {
@@ -75,8 +89,13 @@ export class WebRTC {
 
       if(conn.listenerCount('data') === 0){
         conn.on('data', (response) => {
-          const {data} = response as PeerData;
-          this.eventBus.emit(EVENT_LIST.UPDATE_DATABASE, data);
+          const {data, type} = response as PeerData<DatabaseEntries | WebRtcDispatchPayload>;
+          if(type === PeerDataType.SYNC){
+            this.eventBus.emit(EVENT_LIST.APPLY_DATABASE_SNAPSHOT, data as DatabaseEntries);
+          }
+          else {
+            this.eventBus.emit(EVENT_LIST.UPDATE_DATABASE, data as WebRtcDispatchPayload);
+          }
           this.customHandlers.message(response);
         });
       }
@@ -98,6 +117,7 @@ export class WebRTC {
       }
 
       this.customHandlers.connection(conn.peer);
+      this.eventBus.emit(EVENT_LIST.COMPLETE_JOIN_ROOM, conn.peer);
     });
   }
 
@@ -131,10 +151,7 @@ export class WebRTC {
 
   send(data : WebRtcDispatchPayload){
     try{
-      const sendData : PeerData = {
-        data,
-        timestamp: Date.now()
-      };
+      const sendData = createPeerData<WebRtcDispatchPayload>(data, this.peerId!, PeerDataType.UPDATE);
 
       for(const conn of Object.values(this.connections)){
         if(conn.open) {

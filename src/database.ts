@@ -1,6 +1,6 @@
-import type { Database, DatabaseConfig, DatabaseData, Listener, ListenerHandler, ListenerKey, TableKey } from "./lib/type/database.js";
+import type { Database, DatabaseConfig, DatabaseData, DatabaseEntries, Listener, ListenerHandler, ListenerKey, TableKey } from "./lib/type/database.js";
 import { EVENT_LIST, type EventMap } from "./lib/event-list.js";
-import type { WebRtcDispatchPayload } from "./lib/type/web-rtc.js";
+import type { PeerID, WebRtcDispatchPayload } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
 import type { EventBus } from "./lib/event-bus.js";
 
@@ -16,6 +16,21 @@ export class LiveDatabase {
     this.eventBus.on(EVENT_LIST.UPDATE_DATABASE, (data : WebRtcDispatchPayload) => this.onValue(data));
     this.eventBus.on(EVENT_LIST.SET_DATABASE_CONFIG, (config) => {
       this.updateTimeout = config?.updateTimeout ?? this.updateTimeout;
+    });
+    this.eventBus.on(EVENT_LIST.COMPLETE_JOIN_ROOM, (peerId) => this.syncDatabase(peerId));
+    this.eventBus.on(EVENT_LIST.APPLY_DATABASE_SNAPSHOT, (data) => this.applyDatabase(data));
+  }
+
+  applyDatabase(database : DatabaseEntries){
+    this._database = new Map(database);
+    this.eventBus.emit(EVENT_LIST.UPDATE_COMPLETE_DATABASE);
+  }
+
+  syncDatabase(peerId : PeerID){
+    if(!this.roomChief) return;
+    this.eventBus.emit(EVENT_LIST.REQUEST_SYNC_DATABASE, {
+      database : this._database,
+      peerId : peerId
     });
   }
 

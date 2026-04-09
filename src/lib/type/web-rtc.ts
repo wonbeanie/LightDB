@@ -1,5 +1,5 @@
 import type { DataConnection } from "peerjs";
-import type { DatabaseData, TableKey } from "./database.js";
+import type { DatabaseData, DatabaseEntries, TableKey } from "./database.js";
 
 export const HandlerType = {
   CONNECTION : "connection",
@@ -29,11 +29,6 @@ export interface WebRtcDispatchPayload {
   clear ?: boolean
 };
 
-export type PeerData = {
-  data : WebRtcDispatchPayload,
-  timestamp : number
-};
-
 export type ConnectionHandler = (targetId ?: PeerID) => void;
 export type CloseHandler = (targetId ?: PeerID) => void;
 export type MessageHandler = (data ?: unknown) => void;
@@ -43,4 +38,16 @@ export type SendHandler = () => void;
 export interface WebRtcConfig {
   maxReconnectCount ?: number;
   reconnectTimeout ?: number;
+}
+
+export const enum PeerDataType {
+  SYNC = "SYNC",
+  UPDATE = "UPDATE"
+}
+
+export interface PeerData<T = DatabaseEntries | WebRtcDispatchPayload> {
+  data: T;
+  timestamp: number;
+  type: PeerDataType;
+  senderId: PeerID;
 }
