@@ -24,6 +24,7 @@ export type Connections = Record<string, DataConnection>;
 export type PeerID = string;
 
 export interface WebRtcDispatchPayload {
+  id : string,
   table : TableKey,
   data : DatabaseData,
   clear ?: boolean

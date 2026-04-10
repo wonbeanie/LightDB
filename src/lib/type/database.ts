@@ -13,3 +13,10 @@ export interface DatabaseConfig {
 }
 
 export type DatabaseEntries = [TableKey, DatabaseData][];
+
+export type ResolveQueueId = string;
+export interface ResolveQueue {
+  resolve: (value ?: unknown) => void,
+  timeoutId : number
+}
+export type UpdateResolveQueue = Map<ResolveQueueId, ResolveQueue>;
