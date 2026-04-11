@@ -1,8 +1,6 @@
 import type { Database, DatabaseConfig, DatabaseData, DatabaseEntries, Listener, ListenerHandler, ListenerKey, ResolveQueueId, TableKey, UpdateResolveQueue } from "./lib/type/database.js";
-import { EVENT_LIST, type EventMap } from "./lib/event-list.js";
 import type { PeerID, WebRtcDispatchPayload } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
-import type { EventBus } from "./lib/event-bus.js";
 
 export class LiveDatabase {
   private _database : Database = new Map();
@@ -12,26 +10,17 @@ export class LiveDatabase {
   private updateTimeout : number = 5000;
   private lastResolveQueueId = 1;
 
-  constructor(private eventBus: EventBus<EventMap>){
-    this.eventBus.on(EVENT_LIST.UPDATE_DATABASE, (data : WebRtcDispatchPayload) => this.onValue(data));
-    this.eventBus.on(EVENT_LIST.SET_DATABASE_CONFIG, (config) => {
-      this.updateTimeout = config?.updateTimeout ?? this.updateTimeout;
-    });
-    this.eventBus.on(EVENT_LIST.COMPLETE_JOIN_ROOM, (peerId) => this.syncDatabase(peerId));
-    this.eventBus.on(EVENT_LIST.APPLY_DATABASE_SNAPSHOT, (data) => this.applyDatabase(data));
+  public onSendUpdate : (data : WebRtcDispatchPayload) => void = () => {};
+  public onConnect : (peerId : PeerID) => void = () => {};
+  public onUpdateComplete : () => void = () => {};
+
+  constructor(config : DatabaseConfig = {}){
+    this.updateTimeout = config?.updateTimeout ?? this.updateTimeout;
   }
 
-  applyDatabase(database : DatabaseEntries){
-    this._database = new Map(database);
-    this.eventBus.emit(EVENT_LIST.UPDATE_COMPLETE_DATABASE);
-  }
-
-  syncDatabase(peerId : PeerID){
-    if(!this.roomChief) return;
-    this.eventBus.emit(EVENT_LIST.REQUEST_SYNC_DATABASE, {
-      database : this._database,
-      peerId : peerId
-    });
+  syncDatabase(snapshot : DatabaseEntries){
+    this._database = new Map(snapshot);
+    this.onUpdateComplete();
   }
 
   addDBListener(listenerKey : ListenerKey, dbHandler : ListenerHandler){
@@ -61,7 +50,7 @@ export class LiveDatabase {
     }
 
     if(Object.keys(data).length > 0 || options.clear){
-      this.eventBus.emit(EVENT_LIST.REQUEST_PEER_SEND, {
+      this.onSendUpdate({
         id : ResolveQueueId,
         table,
         data,
@@ -121,14 +110,14 @@ export class LiveDatabase {
       }
     }
 
-    this.eventBus.emit(EVENT_LIST.UPDATE_COMPLETE_DATABASE);
+    this.onUpdateComplete();
 
     if(this.roomChief && send){
-      this.eventBus.emit(EVENT_LIST.REQUEST_PEER_SEND, {
+      this.onSendUpdate({
         id,
         table,
         data,
-        clear
+        clear,
       });
     }
   }
@@ -152,7 +141,7 @@ export class LiveDatabase {
   }
 
   connect(targetId : string){
-    this.eventBus.emit(EVENT_LIST.REQUEST_PEER_CONNECT, targetId);
+    this.onConnect(targetId);
   }
 
   async onClear(){
@@ -174,6 +163,10 @@ export class LiveDatabase {
     this.listener.clear();
     this.updateResolveQueue.clear();
     this._database.clear();
+  }
+
+  getDatabase(){
+    return this._database;
   }
 
   get database(){

@@ -1,5 +1,3 @@
-import type { PeerData } from "./type/web-rtc.js";
-
 export function errorHandler(error : Error | string, fatal = false){
     const err = error instanceof Error ? error : new Error(error);
     if(fatal){
