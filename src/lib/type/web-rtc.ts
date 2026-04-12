@@ -6,7 +6,8 @@ export const HandlerType = {
   CLOSE : "close",
   MESSAGE : "message",
   ERROR : "error",
-  SEND : "send"
+  SEND : "send",
+  DISCONNECT: "disconnect"
 } as const;
 
 export type HandlerType = typeof HandlerType[keyof typeof HandlerType];
@@ -17,6 +18,7 @@ export interface PeerEventMap {
   [HandlerType.MESSAGE] : MessageHandler;
   [HandlerType.SEND] : SendHandler;
   [HandlerType.ERROR] : ErrorHandler;
+  [HandlerType.DISCONNECT] : DisconnectHandler;
 }
 export type PeerHandler = PeerEventMap[keyof PeerEventMap];
 
@@ -35,6 +37,7 @@ export type CloseHandler = (targetId ?: PeerID) => void;
 export type MessageHandler = (data ?: unknown) => void;
 export type ErrorHandler = (err ?: Error | unknown) => void;
 export type SendHandler = () => void;
+export type DisconnectHandler = (state : DisconnectType) => void;
 
 export interface WebRtcConfig {
   maxReconnectCount ?: number;
@@ -51,4 +54,10 @@ export interface PeerData<T = DatabaseEntries | WebRtcDispatchPayload> {
   timestamp: number;
   type: PeerDataType;
   senderId: PeerID;
+}
+
+export const enum DisconnectType {
+  SUCCESS = "SUCCESS",
+  RECONNECT_FAIL = "FAILED",
+  RECONNECT_RETRY = "RETRY"
 }

@@ -1,5 +1,5 @@
 import { DataConnection, Peer } from "peerjs";
-import { type Connections, type PeerEventMap, type PeerID, type WebRtcDispatchPayload, type HandlerType, PeerDataType, type PeerData, type WebRtcConfig } from "./lib/type/web-rtc.js";
+import { type Connections, type PeerEventMap, type PeerID, type WebRtcDispatchPayload, type HandlerType, PeerDataType, type PeerData, type WebRtcConfig, DisconnectType } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
 import type { SnapshotPayload } from "./lib/type/database.js";
 import { createPeerData } from "./lib/dto/peer-data.js";
@@ -18,7 +18,8 @@ export class WebRTC {
     close : () => {},
     message : () => {},
     send : () => {},
-    error : () => {}
+    error : () => {},
+    disconnect : () => {},
   };
 
   public onUpdateDatabase : (data : WebRtcDispatchPayload) => void = () => {};
@@ -126,19 +127,20 @@ export class WebRTC {
     this.connections = rest;
 
     if(this.peer && this.peer.destroyed){
-      console.log("서버와 정상적으로 연결이 끊겼습니다.");
+      this.customHandlers.disconnect(DisconnectType.SUCCESS);
       endDisconnect();
       return;
     }
 
     const reconnectCount = this.reconnectCount.get(peerId) || 0;
     if(reconnectCount === this.maxReconnectCount){
-      console.log("재연결이 실패하였습니다. 잠시후 재시도 해주세요.");
       this.reconnectCount.delete(peerId);
+      this.customHandlers.disconnect(DisconnectType.RECONNECT_FAIL);
       endDisconnect();
       return;
     }
-    console.log("오류로 인해 상대방과의 연결이 종료되었습니다. 5초 후 재연결을 시도합니다...");
+    
+    this.customHandlers.disconnect(DisconnectType.RECONNECT_RETRY);
     setTimeout(() => {
       this.reconnectCount.set(peerId, reconnectCount + 1);
       if(this.peerId === peerId && this.peer){
@@ -198,7 +200,8 @@ export class WebRTC {
       close: () => {},
       message: () => {},
       send: () => {},
-      error: () => {}
+      error: () => {},
+      disconnect: () => {},
     };
   }
 
