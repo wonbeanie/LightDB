@@ -1,8 +1,9 @@
 import { DataConnection, Peer } from "peerjs";
 import { type Connections, type PeerEventMap, type PeerID, type WebRtcDispatchPayload, type HandlerType, PeerDataType, type PeerData, type WebRtcConfig } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
-import type { Database, DatabaseEntries } from "./lib/type/database.js";
+import type { SnapshotPayload } from "./lib/type/database.js";
 import { createPeerData } from "./lib/dto/peer-data.js";
+import { Snapshot } from "./lib/dto/snapshot.js";
 
 export class WebRTC {
   private connections : Connections = {};
@@ -21,8 +22,8 @@ export class WebRTC {
   };
 
   public onUpdateDatabase : (data : WebRtcDispatchPayload) => void = () => {};
-  public onGetSnapshot : () => Database = () => (new Map());
-  public onSyncDatabase : (snapshot : DatabaseEntries) => void = () => {};
+  public onGetSnapshot : () => Snapshot = () => (new Snapshot());
+  public onSyncDatabase : (snapshot : Snapshot) => void = () => {};
 
   constructor(config : WebRtcConfig = {}){
     this.maxReconnectCount = config?.maxReconnectCount ?? this.maxReconnectCount;
@@ -69,9 +70,9 @@ export class WebRTC {
 
       if(conn.listenerCount('data') === 0){
         conn.on('data', (response) => {
-          const {data, type} = response as PeerData<DatabaseEntries | WebRtcDispatchPayload>;
+          const {data, type} = response as PeerData<SnapshotPayload | WebRtcDispatchPayload>;
           if(type === PeerDataType.SYNC){
-            this.onSyncDatabase(data as DatabaseEntries);
+            this.onSyncDatabase(Snapshot.deserialize(data as SnapshotPayload));
           }
           else {
             this.onUpdateDatabase(data as WebRtcDispatchPayload);
@@ -105,7 +106,7 @@ export class WebRTC {
     const snapshot = this.onGetSnapshot();
     const conn = this.connections[peerId];
     if(conn){
-      const sendData = createPeerData<DatabaseEntries>([...snapshot], this.peerId!, PeerDataType.SYNC);
+      const sendData = createPeerData<SnapshotPayload>(Snapshot.serialize(snapshot), this.peerId!, PeerDataType.SYNC);
       conn.send(sendData);
     }
   }

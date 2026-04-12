@@ -1,9 +1,11 @@
+import { Snapshot } from "./lib/dto/snapshot.js";
+import { LightStorage } from "./lib/storage.js";
 import type { Database, DatabaseConfig, DatabaseData, DatabaseEntries, Listener, ListenerHandler, ListenerKey, ResolveQueueId, TableKey, UpdateResolveQueue } from "./lib/type/database.js";
 import type { PeerID, WebRtcDispatchPayload } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
 
 export class LiveDatabase {
-  private _database : Database = new Map();
+  private storage : LightStorage;
   private listener : Listener = new Map();
   private updateResolveQueue : UpdateResolveQueue = new Map();
   private roomChief = false;
@@ -13,13 +15,16 @@ export class LiveDatabase {
   public onSendUpdate : (data : WebRtcDispatchPayload) => void = () => {};
   public onConnect : (peerId : PeerID) => void = () => {};
   public onUpdateComplete : () => void = () => {};
+  public onSetStorageKey : (key : string) => void = () => {};
 
   constructor(config : DatabaseConfig = {}){
     this.updateTimeout = config?.updateTimeout ?? this.updateTimeout;
+    this.storage = new LightStorage();
+    this.storage.onSetStorageKey = (key : string) => this.onSetStorageKey(key);
   }
 
-  syncDatabase(snapshot : DatabaseEntries){
-    this._database = new Map(snapshot);
+  syncDatabase(snapshot : Snapshot){
+    this.storage.syncStorage(snapshot);
     this.onUpdateComplete();
   }
 
@@ -88,16 +93,16 @@ export class LiveDatabase {
 
   onValue({id, table, data, clear = false} : WebRtcDispatchPayload, send = true){
     if(clear){
-      this._database = new Map();
+      this.storage.clear();
       this.emitAllCallback();
     }
     else {
-      let prevDatabase = this._database.get(table) || {};
+      let prevDatabase = this.storage.get(table) || {};
       const newDatabase = {
         ...prevDatabase,
         ...data
       };
-      this._database.set(table, newDatabase);
+      this.storage.set(table, newDatabase);
       this.emitCallback(table, newDatabase);
     }
 
@@ -138,7 +143,7 @@ export class LiveDatabase {
   }
   
   getData(table : TableKey){
-    return this._database.get(table);
+    return this.storage.get(table);
   }
 
   connect(targetId : string){
@@ -162,7 +167,7 @@ export class LiveDatabase {
 
   destroy(){
     this.listener.clear();
-    this._database.clear();
+    this.storage.destroy();
 
     if(this.updateResolveQueue.size > 0){
       this.updateResolveQueue.forEach(resolveData => {
@@ -172,11 +177,11 @@ export class LiveDatabase {
     }
   }
 
-  getDatabase(){
-    return this._database;
+  getSnapshot(){
+    return this.storage.getSnapshot();
   }
 
   get database(){
-    return Object.fromEntries(this._database);
+    return Object.fromEntries(this.storage.getDatabase());
   }
 }

@@ -1,7 +1,7 @@
-import type { DatabaseEntries } from "../type/database.js";
+import type { SnapshotPayload } from "../type/database.js";
 import { PeerDataType, type PeerData, type PeerID, type WebRtcDispatchPayload } from "../type/web-rtc.js";
 
-export const createPeerData = <T extends DatabaseEntries | WebRtcDispatchPayload>(
+export const createPeerData = <T extends SnapshotPayload | WebRtcDispatchPayload>(
   data: T,
   senderId: PeerID,
   type: PeerDataType = PeerDataType.UPDATE,

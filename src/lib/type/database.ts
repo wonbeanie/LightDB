@@ -21,3 +21,8 @@ export interface ResolveQueue {
   timeoutId : number
 }
 export type UpdateResolveQueue = Map<ResolveQueueId, ResolveQueue>;
+
+export interface SnapshotPayload {
+  database : DatabaseEntries,
+  updateTimestamp : number
+}

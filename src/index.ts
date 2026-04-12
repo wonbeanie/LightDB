@@ -28,8 +28,11 @@ export class LightDB {
     });
   }
 
-  async createRoom(){
+  async createRoom(storageKey ?: string){
     const {engine} = internals.get(this)!;
+    if(storageKey){
+      engine.onSetStorageKey(storageKey);
+    }
     return engine.createRoom();
   }
 

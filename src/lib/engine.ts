@@ -14,6 +14,7 @@ export class LightDBEngine {
   public roomId : string | null = null;
 
   public onUpdateComplete : () => void = () => {};
+  public onSetStorageKey : (key : string) => void = () => {};
 
   constructor(config: Config = {database: {}, webRtc: {}}){
     this.db = new LiveDatabase(config.database);
@@ -25,8 +26,9 @@ export class LightDBEngine {
       this.onUpdateComplete();
     };
     this.db.onConnect = (targetId) => this.rtc.connect(targetId);
+    this.db.onSetStorageKey = (key) => this.onSetStorageKey(key);
 
-    this.rtc.onGetSnapshot = () => this.db.getDatabase();
+    this.rtc.onGetSnapshot = () => this.db.getSnapshot();
     this.rtc.onUpdateDatabase = (data) => this.db.onValue(data);
     this.rtc.onSyncDatabase = (snapshot) => this.db.syncDatabase(snapshot);
   }
