@@ -115,7 +115,8 @@ export class WebRTC {
   }
 
   handleDisconnect(peerId : PeerID, endDisconnect : () => void = () => {}) {
-    delete this.connections[peerId];
+    const {[peerId] : disconnectPeer, ...rest} = this.connections;
+    this.connections = rest;
 
     if(this.peer && this.peer.destroyed){
       console.log("서버와 정상적으로 연결이 끊겼습니다.");
