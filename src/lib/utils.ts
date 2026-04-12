@@ -1,5 +1,8 @@
 export function errorHandler(error : Error | string, fatal = false){
     const err = error instanceof Error ? error : new Error(error);
+
+    console.error(err.message);
+
     if(fatal){
       throw err;
     }

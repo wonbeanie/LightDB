@@ -42,32 +42,33 @@ export class LiveDatabase {
   }
 
   async updateDB(table : TableKey = "/", data : DatabaseData, options = {clear : false}){
-    const ResolveQueueId : ResolveQueueId = `${Date.now()}-${this.lastResolveQueueId}`;
-    this.lastResolveQueueId += 1;
-
-    if(this.roomChief){
-      this.onValue({
-        id : ResolveQueueId,
-        data,
-        table,
-        clear : options.clear,
-      }, false);
-    }
-
-    if(Object.keys(data).length > 0 || options.clear){
-      this.onSendUpdate({
-        id : ResolveQueueId,
-        table,
-        data,
-        clear : options.clear,
-      });
-    }
-
     try {
+      const ResolveQueueId : ResolveQueueId = `${Date.now()}-${this.lastResolveQueueId}`;
+      this.lastResolveQueueId += 1;
+
+      if(this.roomChief){
+        this.onValue({
+          id : ResolveQueueId,
+          data,
+          table,
+          clear : options.clear,
+        }, false);
+      }
+
+      if(Object.keys(data).length > 0 || options.clear){
+        this.onSendUpdate({
+          id : ResolveQueueId,
+          table,
+          data,
+          clear : options.clear,
+        });
+      }
+
       return await this.checkUpdate(ResolveQueueId);
     }
-    catch(err){
-      throw errorHandler("Timeout error.");
+    catch(error){
+      const message = error instanceof Error ? error.message : error;
+      throw errorHandler(`[Database] Database Update Failed: ${message}`);
     }
   }
 
@@ -79,7 +80,7 @@ export class LiveDatabase {
       }
       
       const timeoutId = setTimeout(()=>{
-        reject(true);
+        reject(new Error("Database Update Timeout"));
         this.updateResolveQueue.delete(id);
       }, this.updateTimeout);
 

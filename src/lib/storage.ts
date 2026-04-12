@@ -45,7 +45,7 @@ export class LightStorage {
     }
     catch(error){
       const message = error instanceof Error ? error.message : error;
-      errorHandler(`[Storage] Failed to load: ${message}`, false);
+      errorHandler(`[Storage] Failed to load: ${message}`);
       return initData;
     }
 
@@ -61,11 +61,11 @@ export class LightStorage {
     }
     catch(error){
       if(error instanceof DOMException && error.name === "QuotaExceededError"){
-        errorHandler("[Storage] Quota exceeded! Data might not be saved.", false);
+        errorHandler("[Storage] Quota exceeded! Data might not be saved.");
       }
       else {
         const message = error instanceof Error ? error.message : error;
-        errorHandler(`[Storage] Save failed: ${message}`, false);
+        errorHandler(`[Storage] Save Failed: ${message}`);
       }
     }
   }
@@ -75,16 +75,21 @@ export class LightStorage {
   }
 
   syncStorage(snapshot : Snapshot){
-    if(!snapshot || typeof snapshot.updateTimestamp !== "number"){
-      errorHandler("[Storage] Received invalid snapshot for sync", false);
-      return;
-    }
+    try{
+      if(!snapshot || typeof snapshot.updateTimestamp !== "number"){
+        throw new Error("Received invalid snapshot for sync");
+      }
 
-    if(snapshot.updateTimestamp <= this.updateTimestamp){
-      return;
+      if(snapshot.updateTimestamp <= this.updateTimestamp){
+        return;
+      }
+      this.setDatabase(snapshot.database);
+      this.updateTimestamp = snapshot.updateTimestamp;
     }
-    this.setDatabase(snapshot.database);
-    this.updateTimestamp = snapshot.updateTimestamp;
+    catch(error){
+      const message = error instanceof Error ? error.message : error;
+      throw errorHandler(`[Storage] Synchronization Failed: ${message}`);
+    }
   }
 
   getSnapshot(){

@@ -19,7 +19,7 @@ export class Snapshot{
 
   static deserialize(payload : SnapshotPayload) {
     if(!payload || !Array.isArray(payload.database)){
-      throw errorHandler("Received invalid snapshot payload format.", false);
+      throw errorHandler("[Snapshot] Received invalid snapshot payload format.");
     }
     return new Snapshot(new Map(payload.database), payload.updateTimestamp);
   }

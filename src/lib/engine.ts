@@ -3,7 +3,7 @@ import { WebRTC } from "../web-rtc.js";
 import type { DatabaseData } from "./type/database.js";
 import type { Config } from "./type/light-db.js";
 import type { HandlerType, PeerEventMap } from "./type/web-rtc.js";
-import { formatNow } from "./utils.js";
+import { errorHandler, formatNow } from "./utils.js";
 
 export class LightDBEngine {
   public db : LiveDatabase;
@@ -34,11 +34,17 @@ export class LightDBEngine {
   }
 
   async createRoom(){
-    const peerId = await this.rtc.init();
-    this.db.setRoomChief();
-    this.roomChief = true;
-    this.roomId = peerId;
-    return peerId;
+    try{
+      const peerId = await this.rtc.init();
+      this.db.setRoomChief();
+      this.roomChief = true;
+      this.roomId = peerId;
+      return peerId;
+    }
+    catch(err){
+      const message = err instanceof Error ? err.message : err;
+      throw errorHandler(`[LightDB] Create Room Failed: ${message}`);
+    }
   }
 
   async joinRoom(targetId: string){
@@ -48,7 +54,8 @@ export class LightDBEngine {
       this.roomId = targetId;
     }
     catch(err){
-      throw err;
+      const message = err instanceof Error ? err.message : err;
+      throw errorHandler(`[LightDB] Join Room Failed: ${message}`);
     }
   }
 

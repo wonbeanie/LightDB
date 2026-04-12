@@ -31,35 +31,41 @@ export class WebRTC {
   }
 
   init(){
-    if(this.initPromise) return this.initPromise;
-    if(this.peer) return Promise.resolve(this.peerId);
-    this.initPromise = new Promise((resolve, reject)=>{
-      const peer = new Peer();
-      this.peer = peer;
+    try{
+      if(this.initPromise) return this.initPromise;
+      if(this.peer) return Promise.resolve(this.peerId);
+      this.initPromise = new Promise((resolve, reject)=>{
+        const peer = new Peer();
+        this.peer = peer;
 
-      peer.on('open', (id) => {
-        this.peerId = id;
-        this.initPromise = null;
-        resolve(id);
-      });
+        peer.on('open', (id) => {
+          this.peerId = id;
+          this.initPromise = null;
+          resolve(id);
+        });
+      
+        peer.on('connection', (conn) => {
+          this.handleConnection(conn);
+        });
     
-      peer.on('connection', (conn) => {
-        this.handleConnection(conn);
-      });
-  
-      peer.on('error', (err) => {
-        reject(err);
-        this.peer = null;
-        this.initPromise = null;
-        throw errorHandler(err);
-      });
+        peer.on('error', (err) => {
+          const message = err instanceof Error ? err.message : err;
+          reject(new Error(`Peer connection error: ${message}`));
+          this.peer = null;
+          this.initPromise = null;
+        });
 
-      peer.on("disconnected", () => {
-        this.handleDisconnect(peer.id);
-      });
-    })
+        peer.on("disconnected", () => {
+          this.handleDisconnect(peer.id);
+        });
+      })
 
-    return this.initPromise;
+      return this.initPromise;
+    }
+    catch(error){
+      const message = error instanceof Error ? error.message : error;
+      throw errorHandler(`[WebRtc] WebRtc Initialization Failed: ${message}`);
+    }
   }
 
   private handleConnection = (conn : DataConnection) => {
@@ -156,22 +162,23 @@ export class WebRTC {
 
       this.customHandlers.send();
     }
-    catch(err){
-      throw err;
+    catch(error){
+      const message = error instanceof Error ? error.message : error;
+      throw errorHandler(`[WebRtc] Send Failed: ${message}`);
     }
   }
 
   connect(targetId : PeerID){
-    if(!this.peer){
-      throw errorHandler("peer does not exist.");
-    }
-
     try{
+      if(!this.peer){
+        throw new Error("peer does not exist.");
+      }
       const conn = this.peer.connect(targetId);
       this.handleConnection(conn);
     }
-    catch(err){
-      throw err;
+    catch(error){
+      const message = error instanceof Error ? error.message : error;
+      throw errorHandler(`[WebRtc] Connect Failed: ${message}`);
     }
   }
 
