@@ -80,6 +80,7 @@ export class LiveDatabase {
 
       this.updateResolveQueue.set(id, {
         resolve : resolve,
+        reject: reject,
         timeoutId
       });
     });
@@ -161,8 +162,14 @@ export class LiveDatabase {
 
   destroy(){
     this.listener.clear();
-    this.updateResolveQueue.clear();
     this._database.clear();
+
+    if(this.updateResolveQueue.size > 0){
+      this.updateResolveQueue.forEach(resolveData => {
+        resolveData.reject(true);
+      });
+      this.updateResolveQueue.clear();
+    }
   }
 
   getDatabase(){
