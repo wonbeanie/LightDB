@@ -1,20 +1,29 @@
 import { Snapshot } from "./dto/snapshot.js";
+import { MemoryStorage } from "./memory-storage.js";
 import type { Database, DatabaseData } from "./type/database.js";
+import type { StorageEngine } from "./type/storage.js";
 import { errorHandler } from "./utils.js";
 
 export class LightStorage {
   private database : Database;
   private updateTimestamp : number;
   private storageKey = "LIGHT_DB";
+  private storage : StorageEngine;
 
-  public onSetStorageKey = (key : string) => {
-    this.storageKey = key;
-  }
-
-  constructor(){
+  constructor(storage ?: StorageEngine){
+    this.storage = storage ||
+                  (
+                    typeof window !== 'undefined' ?
+                    window.localStorage : new MemoryStorage()
+                  );
+    
     const {database, updateTimestamp} = this.getStorage();
     this.database = database
     this.updateTimestamp = updateTimestamp;
+  }
+
+  public onSetStorageKey = (key : string) => {
+    this.storageKey = key;
   }
   
   setDatabase(newDatabase : Database){
@@ -29,7 +38,7 @@ export class LightStorage {
     };
 
     try {
-      const data = localStorage.getItem(this.storageKey);
+      const data = this.storage.getItem(this.storageKey);
       if (!data) return initData;
 
       const parsed = JSON.parse(data);
@@ -57,7 +66,7 @@ export class LightStorage {
         database : Object.fromEntries(this.database),
         updateTimestamp : Date.now()
       };
-      localStorage.setItem(this.storageKey, JSON.stringify(storageData));
+      this.storage.setItem(this.storageKey, JSON.stringify(storageData));
     }
     catch(error){
       if(error instanceof DOMException && error.name === "QuotaExceededError"){
@@ -98,12 +107,12 @@ export class LightStorage {
 
   clear(){
     this.database.clear();
-    localStorage.removeItem(this.storageKey)
+    this.storage.removeItem(this.storageKey)
   }
 
   destroy(){
     this.database.clear();
-    localStorage.removeItem(this.storageKey)
+    this.storage.removeItem(this.storageKey)
   }
 
   set(table : string, data : DatabaseData){

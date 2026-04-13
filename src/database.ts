@@ -17,9 +17,9 @@ export class LiveDatabase {
   public onUpdateComplete : () => void = () => {};
   public onSetStorageKey : (key : string) => void = () => {};
 
-  constructor(config : DatabaseConfig = {}){
+  constructor(config : DatabaseConfig = {}, storage : LightStorage){
     this.updateTimeout = config?.updateTimeout ?? this.updateTimeout;
-    this.storage = new LightStorage();
+    this.storage = storage;
     this.storage.onSetStorageKey = (key : string) => this.onSetStorageKey(key);
   }
 

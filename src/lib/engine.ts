@@ -1,13 +1,16 @@
 import { LiveDatabase } from "../database.js";
 import { WebRTC } from "../web-rtc.js";
+import { LightStorage } from "./storage.js";
 import type { DatabaseData } from "./type/database.js";
 import type { Config } from "./type/light-db.js";
+import type { StorageEngine } from "./type/storage.js";
 import type { HandlerType, PeerEventMap } from "./type/web-rtc.js";
 import { errorHandler, formatNow } from "./utils.js";
 
 export class LightDBEngine {
   public db : LiveDatabase;
   public rtc : WebRTC;
+  public storage : LightStorage;
   public database = {};
   public updateTimestamp : string = "";
   public roomChief = false;
@@ -16,8 +19,9 @@ export class LightDBEngine {
   public onUpdateComplete : () => void = () => {};
   public onSetStorageKey : (key : string) => void = () => {};
 
-  constructor(config: Config = {database: {}, webRtc: {}}){
-    this.db = new LiveDatabase(config.database);
+  constructor(config: Config = {database: {}, webRtc: {}}, storage ?: StorageEngine){
+    this.storage = new LightStorage(storage);
+    this.db = new LiveDatabase(config.database, this.storage);
     this.rtc = new WebRTC(config.webRtc);
 
     this.db.onSendUpdate = (data) => this.rtc.send(data);
