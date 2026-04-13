@@ -1,4 +1,4 @@
-import { DataConnection, Peer } from "peerjs";
+import type { DataConnection, Peer as PeerType } from "peerjs";
 import { type Connections, type PeerEventMap, type PeerID, type WebRtcDispatchPayload, type HandlerType, PeerDataType, type PeerData, type WebRtcConfig, DisconnectType } from "./lib/type/web-rtc.js";
 import { errorHandler } from "./lib/utils.js";
 import type { SnapshotPayload } from "./lib/type/database.js";
@@ -8,7 +8,7 @@ import { Snapshot } from "./lib/dto/snapshot.js";
 export class WebRTC {
   private connections : Connections = {};
   private peerId : PeerID | null = null;
-  private peer: Peer | null = null;
+  private peer: PeerType | null = null;
   private initPromise : Promise<PeerID> | null = null;
   private reconnectCount = new Map<PeerID, number>();
   private maxReconnectCount = 5;
@@ -35,7 +35,18 @@ export class WebRTC {
     try{
       if(this.initPromise) return this.initPromise;
       if(this.peer) return Promise.resolve(this.peerId);
-      this.initPromise = new Promise((resolve, reject)=>{
+
+      if(typeof window === 'undefined' && !globalThis.RTCPeerConnection){
+        throw new Error(
+          "[WebRTC] SSR/Node.js environment detected. " +
+          "WebRTC requires a browser or a polyfill (like 'wrtc' or 'node-datachannel')."
+        )
+      }
+
+      this.initPromise = new Promise(async (resolve, reject)=>{
+        const PeerModule = await import("peerjs");
+        const Peer = PeerModule.Peer || PeerModule.default;
+
         const peer = new Peer();
         this.peer = peer;
 
