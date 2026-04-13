@@ -1,10 +1,10 @@
-import { LiveDatabase } from "../database.js";
-import { WebRTC } from "../web-rtc.js";
+import { LiveDatabase } from "./database.js";
+import type { DatabaseData } from "../types/database.js";
+import type { Config } from "../types/light-db.js";
+import type { StorageEngine } from "../types/storage.js";
+import type { HandlerType, PeerEventMap } from "../types/web-rtc.js";
+import { WebRTC } from "./web-rtc.js";
 import { LightStorage } from "./storage.js";
-import type { DatabaseData } from "./type/database.js";
-import type { Config } from "./type/light-db.js";
-import type { StorageEngine } from "./type/storage.js";
-import type { HandlerType, PeerEventMap } from "./type/web-rtc.js";
 import { errorHandler, formatNow } from "./utils.js";
 
 export class LightDBEngine {

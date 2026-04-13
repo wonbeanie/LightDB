@@ -1,9 +1,9 @@
 import type { DataConnection, Peer as PeerType } from "peerjs";
-import { type Connections, type PeerEventMap, type PeerID, type WebRtcDispatchPayload, type HandlerType, PeerDataType, type PeerData, type WebRtcConfig, DisconnectType } from "./lib/type/web-rtc.js";
-import { errorHandler } from "./lib/utils.js";
-import type { SnapshotPayload } from "./lib/type/database.js";
-import { createPeerData } from "./lib/dto/peer-data.js";
-import { Snapshot } from "./lib/dto/snapshot.js";
+import { errorHandler } from "./utils.js";
+import { Snapshot } from "../dto/snapshot.js";
+import type { SnapshotPayload } from "../types/database.js";
+import { createPeerData } from "../dto/peer-data.js";
+import { DisconnectType, HandlerType, PeerDataType, type Connections, type PeerData, type PeerEventMap, type PeerID, type WebRtcConfig, type WebRtcDispatchPayload } from "../types/web-rtc.js";
 
 export class WebRTC {
   private connections : Connections = {};

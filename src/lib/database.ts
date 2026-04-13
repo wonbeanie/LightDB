@@ -1,8 +1,8 @@
-import { Snapshot } from "./lib/dto/snapshot.js";
-import { LightStorage } from "./lib/storage.js";
-import type { Database, DatabaseConfig, DatabaseData, DatabaseEntries, Listener, ListenerHandler, ListenerKey, ResolveQueueId, TableKey, UpdateResolveQueue } from "./lib/type/database.js";
-import type { PeerID, WebRtcDispatchPayload } from "./lib/type/web-rtc.js";
-import { errorHandler } from "./lib/utils.js";
+import type { Snapshot } from "../dto/snapshot.js";
+import { LightStorage } from "./storage.js";
+import { errorHandler } from "./utils.js";
+import type { DatabaseConfig, DatabaseData, Listener, ListenerHandler, ListenerKey, ResolveQueueId, TableKey, UpdateResolveQueue } from "../types/database.js";
+import type { PeerID, WebRtcDispatchPayload } from "../types/web-rtc.js";
 
 export class LiveDatabase {
   private storage : LightStorage;

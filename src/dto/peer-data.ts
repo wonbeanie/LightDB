@@ -1,5 +1,5 @@
-import type { SnapshotPayload } from "../type/database.js";
-import { PeerDataType, type PeerData, type PeerID, type WebRtcDispatchPayload } from "../type/web-rtc.js";
+import type { SnapshotPayload } from "../types/database.js";
+import { PeerDataType, type PeerData, type PeerID, type WebRtcDispatchPayload } from "../types/web-rtc.js";
 
 export const createPeerData = <T extends SnapshotPayload | WebRtcDispatchPayload>(
   data: T,

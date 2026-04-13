@@ -1,8 +1,8 @@
 import { LightDBEngine } from "./lib/engine.js";
-import type { DatabaseData } from "./lib/type/database.js";
-import type { Config } from "./lib/type/light-db.js";
-import type { StorageEngine } from "./lib/type/storage.js";
-import type { HandlerType, PeerEventMap } from "./lib/type/web-rtc.js";
+import type { DatabaseData } from "./types/database.js";
+import type { Config } from "./types/light-db.js";
+import type { StorageEngine } from "./types/storage.js";
+import type { HandlerType, PeerEventMap } from "./types/web-rtc.js";
 
 const internals = new WeakMap<LightDB, {
   engine : LightDBEngine
@@ -14,7 +14,7 @@ export class LightDB {
   public roomId : string | null = null;
   public updateTimestamp : string = "";
 
-  constructor(config ?: Config, storage ?: StorageEngine){   
+  constructor(config ?: Config, storage ?: StorageEngine){
     const engine = new LightDBEngine(config, storage);
 
     engine.onUpdateComplete = () => {

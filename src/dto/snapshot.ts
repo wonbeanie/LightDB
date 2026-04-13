@@ -1,5 +1,5 @@
-import type { Database, SnapshotPayload } from "../type/database.js";
-import { errorHandler } from "../utils.js";
+import { errorHandler } from "../lib/utils.js";
+import type { Database, SnapshotPayload } from "../types/database.js";
 
 export class Snapshot{
   database : Database;

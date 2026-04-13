@@ -1,7 +1,7 @@
-import { Snapshot } from "./dto/snapshot.js";
+import { Snapshot } from "../dto/snapshot.js";
+import type { Database, DatabaseData } from "../types/database.js";
+import type { StorageEngine } from "../types/storage.js";
 import { MemoryStorage } from "./memory-storage.js";
-import type { Database, DatabaseData } from "./type/database.js";
-import type { StorageEngine } from "./type/storage.js";
 import { errorHandler } from "./utils.js";
 
 export class LightStorage {

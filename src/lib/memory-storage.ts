@@ -1,4 +1,4 @@
-import type { StorageEngine } from "./type/storage.js";
+import type { StorageEngine } from "../types/storage.js";
 
 export class MemoryStorage implements StorageEngine {
   private data: Record<string, string> = {};
