@@ -1,13 +1,13 @@
 export function errorHandler(error : Error | string, fatal = false){
-    const err = error instanceof Error ? error : new Error(error);
+  const err = error instanceof Error ? error : new Error(error);
 
-    console.error(err.message);
+  console.error(err.message);
 
-    if(fatal){
-      throw err;
-    }
-    return err;
+  if(fatal){
+    throw err;
   }
+  return err;
+}
 
 export function formatNow(): string {
   const now = new Date();
