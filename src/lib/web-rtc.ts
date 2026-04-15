@@ -23,7 +23,7 @@ export class WebRTC {
   };
 
   public onUpdateDatabase : (data : WebRtcDispatchPayload) => void = () => {};
-  public onGetSnapshot : () => Snapshot = () => (new Snapshot());
+  public onGetSnapshot : () => Snapshot = () => (new Snapshot(new Map()));
   public onSyncDatabase : (snapshot : Snapshot) => void = () => {};
 
   constructor(config : WebRtcConfig = {}){
