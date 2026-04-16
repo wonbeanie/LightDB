@@ -1,6 +1,6 @@
 import { Snapshot } from "../dto/snapshot.js";
 import type { Database, DatabaseData } from "../types/database.js";
-import type { ParseDatabase, ParseStorageData, ParseUpdateTimestamp, StorageEngine } from "../types/storage.js";
+import type { ParseStorageData, StorageEngine } from "../types/storage.js";
 import { MemoryStorage } from "./memory-storage.js";
 import { errorHandler } from "./utils.js";
 
@@ -11,12 +11,12 @@ export class LightStorage {
   /**
    * 현재 메모리에 로드된 데이터베이스 맵 객체
    */
-  private database : Database;
+  private database : Database = new Map();
 
   /**
    * 저장소 버전 관리를 위한 Timestamp(ms)
    */
-  private updateTimestamp : number;
+  private updateTimestamp : number = 0;
 
   /**
    * LightDB에서 사용하는 저장소 키 (커스텀 가능)
@@ -34,17 +34,17 @@ export class LightStorage {
                     typeof window !== 'undefined' ?
                     window.localStorage : new MemoryStorage()
                   );
-    
-    const {database, updateTimestamp} = this.getStorage();
-    this.database = database
-    this.updateTimestamp = updateTimestamp;
+
+    this.loadStorage();
   }
 
   /**
    * 외부에서 저장소 키를 받기 위한 메서드입니다.
    */
   public onSetStorageKey = (key : string) => {
+    if(this.storageKey === key) return;
     this.storageKey = key;
+    this.loadStorage();
   }
 
   public getDatabase(){
@@ -64,7 +64,7 @@ export class LightStorage {
         return;
       }
 
-      this.setDatabase(snapshot.database, snapshot.updateTimestamp);
+      this.setDatabase(snapshot);
       this.updateTimestamp = snapshot.updateTimestamp;
     }
     catch(error){
@@ -99,9 +99,8 @@ export class LightStorage {
     return this.database.get(table);
   }
 
-  setDatabase(newDatabase : Database, updateTimestamp : number = Date.now()){
-    this.database = newDatabase;
-    const snapshot = new Snapshot(newDatabase, updateTimestamp);
+  public setDatabase(snapshot: Snapshot){
+    this.database = snapshot.database;
     this.setStorage(snapshot);
   }
 
@@ -110,7 +109,7 @@ export class LightStorage {
    * @returns 저장소 데이터가 담긴 {@link Snapshot} 객체
    * @throws 저장소 데이터가 {@link ParseStorageData}의 형태가 아닐때 발생합니다.
    */
-  getStorage(){
+  public getStorage(){
     const initData = {
       database : new Map<string, DatabaseData>(),
       updateTimestamp : 0
@@ -125,7 +124,7 @@ export class LightStorage {
     catch(error){
       const message = error instanceof Error ? error.message : error;
       errorHandler(`[Storage] Failed to load: ${message}`);
-      return initData;
+      return new Snapshot(new Map());
     }
 
   }
@@ -135,7 +134,7 @@ export class LightStorage {
    * @param [snapshot] 저장소에 저장할 {@link Snapshot} 객체
    * @throws 저장소의 용량이 부족할때(QuotaExceededError) 발생합니다.
    */
-  setStorage(snapshot: Snapshot = new Snapshot(this.database)){
+  public setStorage(snapshot: Snapshot = new Snapshot(this.database)){
     try{
       this.storage.setItem(this.storageKey, Snapshot.stringify(snapshot));
     }
@@ -148,5 +147,11 @@ export class LightStorage {
         errorHandler(`[Storage] Save Failed: ${message}`);
       }
     }
+  }
+
+  private loadStorage(){
+    const {database, updateTimestamp} = this.getStorage();
+    this.database = database
+    this.updateTimestamp = updateTimestamp;
   }
 }
