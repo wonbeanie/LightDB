@@ -56,12 +56,18 @@ export class Snapshot{
    *  저장된 문자열 데이터를 해석하여 {@link Snapshot} 객체로 변환하는 객채화 메서드입니다.
    */
   public static parse(text : string){
-    const parsed = JSON.parse(text);
-    if(!parsed.database || typeof parsed.updateTimestamp !== "number"){
-      throw new Error("Invalid storage structure");
-    }
+    try{
+      const parsed = JSON.parse(text);
+      if(!parsed.database || typeof parsed.updateTimestamp !== "number"){
+        throw new Error("Invalid storage structure");
+      }
 
-    const database = new Map(Object.entries(parsed.database as ParseDatabase));
-    return new Snapshot(database, parsed.updateTimestamp as ParseUpdateTimestamp);
+      const database = new Map(Object.entries(parsed.database as ParseDatabase));
+      return new Snapshot(database, parsed.updateTimestamp as ParseUpdateTimestamp);
+    }
+    catch(err){
+      const message = err instanceof Error ? err.message : err;
+      throw errorHandler(`[Snapshot] Failed to convert string to object: ${message}`);
+    }
   }
 }
