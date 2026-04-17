@@ -34,7 +34,7 @@ describe("LightStorage 테스트", () => {
     lightStorage.syncStorage(newSnapshot);
 
     const data = mockStorage.getItem("LIGHT_DB")!;
-    expect(Snapshot.parse(data)).toEqual(newSnapshot);
+    expect(Snapshot.parse(data)).toStrictEqual(newSnapshot);
   });
 
   test("특정 테이블의 데이터를 가져올 수 있어야 한다.", () => {
@@ -135,11 +135,30 @@ describe("LightStorage 테스트", () => {
     expect(lightStorage.get('user')).toBeUndefined();
   });
 
-  test("저장소에 잘못된 데이터가 있어도 안전하게 초기화되어야 한다.", () => {
-    mockStorage.setItem("LIGHT_DB", "invalid-json");
-    lightStorage = new LightStorage(mockStorage);
+  describe("잘못된 데이터 로드 시", () => {
+    beforeEach(() => {
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+      mockStorage.setItem("LIGHT_DB", "invalid-json");
+      lightStorage = new LightStorage(mockStorage);
+    })
 
-    expect(lightStorage.getDatabase()).toEqual(new Map());
-    expect(lightStorage.getStorage()).toEqual(new Snapshot(new Map()));
-  });
+    afterEach(() => {
+      vi.restoreAllMocks();
+    })
+
+    test("데이터베이스는 빈 Map으로 초기화된다", () => {
+      expect(lightStorage.getDatabase()).toEqual(new Map());
+    });
+
+    test("스토리지 스냅샷은 빈 상태여야 한다", () => {
+      expect(lightStorage.getStorage()).toStrictEqual(new Snapshot(new Map()));
+    });
+
+    test("콘솔에 에러 로그가 출력되어야 한다", () => {
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining("is not valid JSON")
+      );
+    });
+  })
+
 });
