@@ -21,7 +21,7 @@ export class LightDBEngine {
 
   constructor(config: Config = {database: {}, webRtc: {}}, storage ?: StorageEngine){
     this.storage = new LightStorage(storage);
-    this.db = new LiveDatabase(config.database, this.storage);
+    this.db = new LiveDatabase(this.storage, config.database);
     this.rtc = new WebRTC(config.webRtc);
 
     this.db.onSend = (data) => this.rtc.send(data);
