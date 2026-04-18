@@ -13,10 +13,11 @@ export interface DatabaseConfig {
 }
 
 export type DatabaseEntries = [TableKey, DatabaseData][];
+export type DatabaseRecord = Record<TableKey, DatabaseData>;
 
 export type ResolveQueueId = string;
 export interface ResolveQueue {
-  resolve: (value ?: unknown) => void,
+  resolve: (value : DatabaseRecord) => void,
   reject: (value ?: unknown) => void,
   timeoutId : number
 }

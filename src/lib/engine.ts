@@ -24,12 +24,11 @@ export class LightDBEngine {
     this.db = new LiveDatabase(config.database, this.storage);
     this.rtc = new WebRTC(config.webRtc);
 
-    this.db.onSendUpdate = (data) => this.rtc.send(data);
+    this.db.onSend = (data) => this.rtc.send(data);
     this.db.onUpdateComplete = () => {
       this.setDatabase();
       this.onUpdateComplete();
     };
-    this.db.onConnect = (targetId) => this.rtc.connect(targetId);
     this.db.onSetStorageKey = (key) => this.onSetStorageKey(key);
 
     this.rtc.onGetSnapshot = () => this.db.getSnapshot();
@@ -40,7 +39,7 @@ export class LightDBEngine {
   async createRoom(){
     try{
       const peerId = await this.rtc.init();
-      this.db.setRoomChief();
+      this.db.roomChief = true;
       this.roomChief = true;
       this.roomId = peerId;
       return peerId;
@@ -54,7 +53,7 @@ export class LightDBEngine {
   async joinRoom(targetId: string){
     try{
       await this.rtc.init();
-      this.db.connect(targetId);
+      this.rtc.connect(targetId);
       this.roomId = targetId;
     }
     catch(err){
@@ -76,9 +75,7 @@ export class LightDBEngine {
   }
 
   async clear(){
-    return this.db.updateDB("/", {}, {
-      clear: true
-    });
+    return this.db.updateDB("/", {}, true);
   }
 
   onPeer<K extends HandlerType>(event : K, handler: PeerEventMap[K]){
