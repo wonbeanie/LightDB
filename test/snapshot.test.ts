@@ -1,5 +1,4 @@
 import { Snapshot } from "../src/dto/snapshot.js";
-import { errorHandler } from "../src/lib/utils.js";
 import type { Database } from "../src/types/database.js";
 
 describe("Snapshot 테스트", () => {
