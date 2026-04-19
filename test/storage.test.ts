@@ -161,4 +161,17 @@ describe("LightStorage 테스트", () => {
     });
   })
 
+  test("데이터를 제거하면 저장소에서 제거되어야 한다", () => {
+    lightStorage.set('users', {id: 1, name : "test", age : 22});
+    
+    const savedData = JSON.parse(mockStorage.getItem("LIGHT_DB")!);
+    expect(savedData.database.users).toEqual({id: 1, name : "test", age : 22});
+    expect(savedData.updateTimestamp).toBe(1000);
+
+    vi.advanceTimersByTime(1000);
+    lightStorage.remove('users');
+    const removeData = JSON.parse(mockStorage.getItem("LIGHT_DB")!);
+    expect(removeData.database.users).toBeUndefined();
+    expect(removeData.updateTimestamp).toBe(2000);
+  });
 });
