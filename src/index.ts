@@ -1,5 +1,5 @@
 import { LightDBEngine } from "./lib/engine.js";
-import type { DatabaseData } from "./types/database.js";
+import { DB_PATH, type DatabaseData } from "./types/database.js";
 import type { Config } from "./types/light-db.js";
 import type { StorageEngine } from "./types/storage.js";
 import type { HandlerType, PeerEventMap } from "./types/web-rtc.js";
@@ -52,7 +52,7 @@ export class LightDB {
     engine.off(table);
   }
 
-  async update(table : string = "/", data : DatabaseData){
+  async update(table : string = DB_PATH.ROOT, data : DatabaseData){
     const {engine} = internals.get(this)!;
     return engine.update(table, data);
   }
@@ -76,6 +76,11 @@ export class LightDB {
     const {engine} = internals.get(this)!;
     engine.destroy();
     internals.delete(this);
+  }
+
+  remove(table: string){
+    const {engine} = internals.get(this)!;
+    engine.remove(table);
   }
 }
 

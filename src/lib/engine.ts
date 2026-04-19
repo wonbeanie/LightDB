@@ -1,5 +1,5 @@
 import { LiveDatabase } from "./database.js";
-import type { DatabaseData } from "../types/database.js";
+import { DB_PATH, type DatabaseData } from "../types/database.js";
 import type { Config } from "../types/light-db.js";
 import type { StorageEngine } from "../types/storage.js";
 import type { HandlerType, PeerEventMap } from "../types/web-rtc.js";
@@ -72,12 +72,12 @@ export class LightDBEngine {
     this.db.removeDBListener(table);
   }
 
-  async update(table : string = "/", data : DatabaseData){
+  async update(table : string = DB_PATH.ROOT, data : DatabaseData){
     return this.db.updateDB(table, data);
   }
 
   async clear(){
-    return this.db.updateDB("/", {}, true);
+    return this.db.updateDB(DB_PATH.ROOT, {}, true);
   }
 
   onPeer<K extends HandlerType>(event : K, handler: PeerEventMap[K]){
@@ -101,4 +101,7 @@ export class LightDBEngine {
     this.updateTimestamp = formatNow();
   }
 
+  async remove(table : string){
+    return this.db.removeTable(table);
+  }
 }

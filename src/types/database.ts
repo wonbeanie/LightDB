@@ -27,3 +27,7 @@ export interface SnapshotPayload {
   database : DatabaseEntries,
   updateTimestamp : number
 }
+
+export const enum DB_PATH {
+  ROOT = "/"
+}

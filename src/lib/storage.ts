@@ -95,6 +95,11 @@ export class LightStorage {
     this.setStorage();
   }
 
+  public remove(table : string){
+    this.database.delete(table);
+    this.setStorage();
+  }
+
   public get(table : string){
     return this.database.get(table);
   }

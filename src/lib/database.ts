@@ -1,8 +1,8 @@
 import type { Snapshot } from "../dto/snapshot.js";
 import { LightStorage } from "./storage.js";
 import { errorHandler } from "./utils.js";
-import type { DatabaseConfig, DatabaseData, DatabaseRecord, Listener, ListenerHandler, ListenerKey, ResolveQueueId, TableKey, UpdateResolveQueue } from "../types/database.js";
-import type { PeerID, WebRtcDispatchPayload } from "../types/web-rtc.js";
+import { DB_PATH, type DatabaseConfig, type DatabaseData, type DatabaseRecord, type Listener, type ListenerHandler, type ListenerKey, type ResolveQueueId, type TableKey, type UpdateResolveQueue } from "../types/database.js";
+import type { WebRtcDispatchPayload } from "../types/web-rtc.js";
 
 /**
  * 사용자의 데이터를 관리하는 클래스입니다.
@@ -80,12 +80,7 @@ export class LiveDatabase {
    * @param dbHandler - 데이터 변경 시 실행될 콜백 함수
    */
   public addDBListener(tableKey : TableKey, dbHandler : ListenerHandler){
-    this.listener.set(tableKey, (data : DatabaseData | null) => {
-      if(data === null){
-        return;
-      }
-      dbHandler(data);
-    });
+    this.listener.set(tableKey, (data : DatabaseData | null) => dbHandler(data));
   }
 
   /**
@@ -98,13 +93,13 @@ export class LiveDatabase {
 
   /**
    * 데이터베이스를 업데이트하고 변경 사항이 동기화 될 때까지 대기하는 메서드
-   * @param table - 업데이트할 테이블 키 (기본값: "/")
+   * @param table - 업데이트할 테이블 키 (기본값: {@link DB_PATH.ROOT})
    * @param data - 저장할 {@link DatabaseData} 객체
-   * @param [clear] - true일 경우 전체 초기화 (선택 사항)
+   * @param [clear] - true일 경우 초기화, 기본값일 경우 전체 초기화 (선택 사항)
    * @returns 업데이트가 완료된 후의 전체 데이터베이스 레코드 {@link DatabaseRecord}
    * @throws 업데이트 타임아웃 또는 처리 실패 시 발생
    */
-  public async updateDB(table : TableKey = "/", data : DatabaseData, clear = false){
+  public async updateDB(table : TableKey = DB_PATH.ROOT, data : DatabaseData, clear = false){
     try {
       const ResolveQueueId : ResolveQueueId = `${Date.now()}-${this.lastResolveQueueId}`;
       this.lastResolveQueueId += 1;
@@ -167,8 +162,14 @@ export class LiveDatabase {
    */
   public onValue({id, table, data, clear = false} : WebRtcDispatchPayload, send = true){
     if(clear){
-      this.storage.clear();
-      this.emitAllCallbackClear();
+      if(table === DB_PATH.ROOT){
+        this.storage.clear();
+        this.emitAllCallbackClear();
+      }
+      else {
+        this.storage.remove(table);
+        this.listener.delete(table);
+      }
     }
     else {
       let prevDatabase = this.storage.get(table) || {};
@@ -242,6 +243,10 @@ export class LiveDatabase {
 
   public getSnapshot(){
     return this.storage.getSnapshot();
+  }
+
+  public removeTable(table : TableKey){
+    this.updateDB(table, {}, true);
   }
 
   get database(){
