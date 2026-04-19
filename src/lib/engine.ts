@@ -17,25 +17,27 @@ export class LightDBEngine {
   public roomId : string | null = null;
 
   public onUpdateComplete : () => void = () => {};
-  public onSetStorageKey : (key : string) => void = () => {};
-
+  
   constructor(config: Config = {database: {}, webRtc: {}}, storage ?: StorageEngine){
     this.storage = new LightStorage(storage);
     this.db = new LiveDatabase(this.storage, config.database);
     this.rtc = new WebRTC(config.webRtc);
-
+    
     this.db.onSend = (data) => this.rtc.send(data);
     this.db.onUpdateComplete = () => {
       this.setDatabase();
       this.onUpdateComplete();
     };
-    this.db.onSetStorageKey = (key) => this.onSetStorageKey(key);
-
+    
     this.rtc.onGetSnapshot = () => this.db.getSnapshot();
     this.rtc.onUpdateDatabase = (data) => this.db.onValue(data);
     this.rtc.onSyncDatabase = (snapshot) => this.db.syncDatabase(snapshot);
   }
 
+  public onSetStorageKey = (key : string) => {
+    this.db.onSetStorageKey(key)
+  };
+  
   async createRoom(){
     try{
       const peerId = await this.rtc.init();

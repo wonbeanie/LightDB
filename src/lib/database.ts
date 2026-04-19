@@ -43,22 +43,10 @@ export class LiveDatabase {
   public onSend : (data : WebRtcDispatchPayload) => void = () => {};
 
   /**
-   * WebRtc에 연결을 요청하는 메서드
-   * @remark 명시적 콜백을 위한 메서드
-   */
-  public onConnect : (peerId : PeerID) => void = () => {};
-
-  /**
    * 데이터 변경이 완료 이후에 사용되는 메서드
    * @remark 명시적 콜백을 위한 메서드
    */
   public onUpdateComplete : () => void = () => {};
-
-  /**
-   * 외부에서 저장소 키를 받기 위한 메서드
-   * @remark 명시적 콜백을 위한 메서드
-   */
-  public onSetStorageKey : (key : string) => void = () => {};
 
   /**
    * 새로운 데이터베이스 인스턴스를 생성
@@ -68,8 +56,14 @@ export class LiveDatabase {
   constructor(storage : LightStorage, config : DatabaseConfig = {}){
     this.updateTimeout = config?.updateTimeout ?? this.updateTimeout;
     this.storage = storage;
-    this.storage.onSetStorageKey = (key : string) => this.onSetStorageKey(key);
   }
+
+  /**
+   * 외부에서 커스텀 키를 받아 저장소에 전파하기 위한 메서드
+   */
+  public onSetStorageKey = (key : string) => {
+    this.storage.onSetStorageKey(key);
+  };
 
   /**
    * 엔진을 통한 데이터 동기화를 위한 메서드
