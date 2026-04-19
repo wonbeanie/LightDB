@@ -123,6 +123,8 @@ export class LiveDatabase {
           clear,
         }, false);
       }
+      
+      const promise = this.checkUpdate(ResolveQueueId);
 
       if(Object.keys(data).length > 0 || clear){
         this.onSend({
@@ -133,7 +135,7 @@ export class LiveDatabase {
         });
       }
 
-      return await this.checkUpdate(ResolveQueueId);
+      return await promise;
     }
     catch(error){
       const message = error instanceof Error ? error.message : error;
