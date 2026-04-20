@@ -26,6 +26,7 @@ export class WebRTC {
   public onGetSnapshot : () => Snapshot = () => (new Snapshot(new Map()));
   public onSyncDatabase : (snapshot : Snapshot) => void = () => {};
 
+  public onGetIsRoomChief : () => boolean = () => false;
   constructor(config : WebRtcConfig = {}){
     this.maxReconnectCount = config?.maxReconnectCount ?? this.maxReconnectCount;
     this.reconnectTimeout = config?.reconnectTimeout ?? this.reconnectTimeout;
@@ -117,6 +118,9 @@ export class WebRTC {
 
       this.customHandlers.connection(conn.peer);
       this.syncDatabase(conn.peer);
+      if(this.onGetIsRoomChief()){
+        this.syncDatabase(conn.peer);
+      }
     });
   }
 

@@ -1,5 +1,4 @@
 import type { Mock } from "vitest";
-import { Snapshot } from "../src/dto/snapshot.js";
 import { LiveDatabase } from "../src/lib/database.js";
 import { MemoryStorage } from "../src/lib/memory-storage.js";
 import { LightStorage } from "../src/lib/storage.js";

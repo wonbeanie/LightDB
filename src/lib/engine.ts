@@ -32,6 +32,7 @@ export class LightDBEngine {
     this.rtc.onGetSnapshot = () => this.db.getSnapshot();
     this.rtc.onUpdateDatabase = (data) => this.db.onValue(data);
     this.rtc.onSyncDatabase = (snapshot) => this.db.syncDatabase(snapshot);
+    this.rtc.onGetIsRoomChief = () => this.db.roomChief;
   }
 
   public onSetStorageKey = (key : string) => {
