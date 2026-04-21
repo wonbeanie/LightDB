@@ -18,7 +18,7 @@ export type DatabaseRecord = Record<TableKey, DatabaseData>;
 export type ResolveQueueId = string;
 export interface ResolveQueue {
   resolve: (value : DatabaseRecord) => void,
-  reject: (value ?: unknown) => void,
+  reject: (err : Error) => void,
   timeoutId : number
 }
 export type UpdateResolveQueue = Map<ResolveQueueId, ResolveQueue>;
