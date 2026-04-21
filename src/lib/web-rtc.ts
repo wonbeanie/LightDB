@@ -3,7 +3,7 @@ import { errorHandler } from "./utils.js";
 import { Snapshot } from "../dto/snapshot.js";
 import type { SnapshotPayload } from "../types/database.js";
 import { createPeerData } from "../dto/peer-data.js";
-import { DisconnectType, HandlerType, PeerDataType, type Connections, type PeerData, type PeerEventMap, type PeerID, type WebRtcConfig, type WebRtcDispatchPayload } from "../types/web-rtc.js";
+import { DisconnectType, HandlerType, PeerDataType, type Connections, type InitPromise, type PeerData, type PeerEventMap, type PeerID, type WebRtcConfig, type WebRtcDispatchPayload } from "../types/web-rtc.js";
 
 /**
  * PeerJS를 이용한 WebRtc 통신을 하는 클래스
@@ -26,7 +26,7 @@ export class WebRTC {
   /**
    * Peer 인스턴스의 초기화 상태를 나타내는 Promise
    */
-  private initPromise : Promise<PeerID> | null = null;
+  private initPromise : InitPromise | null = null;
 
   /**
    * 재연결 횟수를 관리하는 Map 객체
@@ -98,51 +98,66 @@ export class WebRTC {
    * @returns 초기화 상태 확인을 위한 {@link initPromise}
    * @throws SSR/Node.js 환경과 {@link RTCPeerConnection}이 없을때 발생합니다.
    */
-  public init(){
-    try{
-      if(this.initPromise) return this.initPromise;
-      if(this.peer) return Promise.resolve(this.peerId);
+  public async init(){
+    if(typeof window === 'undefined' && !globalThis.RTCPeerConnection){
+      throw new Error(
+        "[WebRTC] SSR/Node.js environment detected. " +
+        "WebRTC requires a browser or a polyfill (like 'wrtc' or 'node-datachannel')."
+      )
+    }
 
-      if(typeof window === 'undefined' && !globalThis.RTCPeerConnection){
-        throw new Error(
-          "[WebRTC] SSR/Node.js environment detected. " +
-          "WebRTC requires a browser or a polyfill (like 'wrtc' or 'node-datachannel')."
-        )
-      }
-
-      this.initPromise = new Promise(async (resolve, reject)=>{
-        const PeerModule = await import("peerjs");
-        const Peer = PeerModule.Peer || PeerModule.default;
-
-        const peer = new Peer();
-        this.peer = peer;
-
-        peer.on('open', (id) => {
-          this.peerId = id;
-          this.initPromise = null;
-          resolve(id);
-        });
-      
-        peer.on('connection', (conn) => {
-          this.handleConnection(conn);
-        });
+    if(this.initPromise) return this.initPromise.promise;
+    if(this.peer) return Promise.resolve(this.peerId);
     
-        peer.on('error', (err) => {
-          const message = err instanceof Error ? err.message : err;
-          reject(new Error(`Peer connection error: ${message}`));
-          this.peer = null;
-          this.initPromise = null;
-        });
 
-        peer.on("disconnected", () => {
-          this.handleDisconnect(peer.id);
-        });
-      })
+    const { promise, resolve, reject } = Promise.withResolvers<PeerID>();
 
-      return this.initPromise;
+    this.initPromise = {
+      promise,
+      resolve,
+      reject
+    };
+
+    this.startPeerSetup(resolve, reject);
+
+    return promise;
+  }
+
+  private async startPeerSetup(resolve : (peerId : PeerID) => void, reject : (err: Error) => void){
+    try{
+      const PeerModule = await import("peerjs");
+      const Peer = PeerModule.Peer || PeerModule.default;
+
+      const peer = new Peer();
+      this.peer = peer;
+
+      peer.on('open', (id) => {
+        this.peerId = id;
+        this.initPromise = null;
+        resolve(id);
+      });
+    
+      peer.on('connection', (conn) => {
+        this.handleConnection(conn);
+      });
+  
+      peer.on('error', (err) => {
+        const message = err instanceof Error ? err.message : err;
+        reject(new Error(`Peer connection error: ${message}`));
+        this.peer = null;
+        this.initPromise = null;
+      });
+
+      peer.on("disconnected", () => {
+        this.handleDisconnect(peer.id);
+      });
+
     }
     catch(error){
       const message = error instanceof Error ? error.message : error;
+      this.initPromise = null;
+      this.peer = null;
+      this.peerId = null;
       throw errorHandler(`[WebRtc] WebRtc Initialization Failed: ${message}`);
     }
   }
@@ -305,7 +320,10 @@ export class WebRTC {
     }
 
     this.peerId = null;
-    this.initPromise = null;
+    if(this.initPromise){
+      this.initPromise.reject(new Error('[WebRtc] Destroyed'));
+      this.initPromise = null;
+    }
     this.customHandlers = {
       connection: () => {},
       close: () => {},

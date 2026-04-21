@@ -61,3 +61,9 @@ export const enum DisconnectType {
   RECONNECT_FAIL = "FAILED",
   RECONNECT_RETRY = "RETRY"
 }
+
+export interface InitPromise {
+  promise : Promise<string>
+  resolve : (peerId : PeerID) => void
+  reject : (err: Error) => void
+}
