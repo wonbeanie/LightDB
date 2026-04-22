@@ -109,7 +109,6 @@ export class WebRTC {
     if(this.initPromise) return this.initPromise.promise;
     if(this.peer) return Promise.resolve(this.peerId);
     
-
     const { promise, resolve, reject } = Promise.withResolvers<PeerID>();
 
     this.initPromise = {

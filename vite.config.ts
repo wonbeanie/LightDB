@@ -5,5 +5,14 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: true,
+    setupFiles: ['./test/setup/vitest.setup.ts'],
+    coverage : {
+      exclude: [
+        'src/types/**',
+        'test/lib/**',
+        'test/mock/**',
+        'test/setup/**',
+      ]
+    }
   },
 })
