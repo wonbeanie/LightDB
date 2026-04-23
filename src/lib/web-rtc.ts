@@ -58,6 +58,11 @@ export class WebRTC {
   };
 
   /**
+   * 시그널링 서버 재연결시 Open 이벤트 중복 실행되지 않기 위한 플래그 변수
+   */
+  private signalReconnected = false;
+
+  /**
    * 데이터베이스에 업데이트를 요청하는 메서드
    * @remarks 명시적 콜백을 위한 메서드
    */
@@ -131,6 +136,11 @@ export class WebRTC {
       this.peer = peer;
 
       peer.on('open', (id) => {
+        if(this.signalReconnected){
+          this.signalReconnected = false;
+          this.customHandlers.disconnect(DisconnectType.SIGNAL_SUCCESS);
+          return;
+        }
         this.peerId = id;
         this.initPromise = null;
         resolve(id);
@@ -148,7 +158,14 @@ export class WebRTC {
       });
 
       peer.on("disconnected", () => {
-        this.handleDisconnect(peer.id);
+        if(peer.destroyed){
+          this.customHandlers.disconnect(DisconnectType.SUCCESS);
+          return;
+        }
+        
+        this.customHandlers.disconnect(DisconnectType.SIGNAL_FAIL);
+        this.signalReconnected = true;
+        peer.disconnect();
       });
 
     }
@@ -238,7 +255,7 @@ export class WebRTC {
     const {[peerId] : disconnectPeer, ...rest} = this.connections;
     this.connections = rest;
 
-    if(this.peer && this.peer.destroyed){
+    if(!this.peer || this.peer.destroyed){
       this.customHandlers.disconnect(DisconnectType.SUCCESS);
       endDisconnect();
       return;

@@ -59,7 +59,9 @@ export interface PeerData<T = DatabaseEntries | WebRtcDispatchPayload> {
 export const enum DisconnectType {
   SUCCESS = "SUCCESS",
   RECONNECT_FAIL = "FAILED",
-  RECONNECT_RETRY = "RETRY"
+  RECONNECT_RETRY = "RETRY",
+  SIGNAL_FAIL = "SIGNAL_FAIL",
+  SIGNAL_SUCCESS = "SIGNAL_SUCCESS"
 }
 
 export interface InitPromise {
