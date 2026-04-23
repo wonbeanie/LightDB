@@ -1,11 +1,13 @@
-export function errorHandler(error : Error | string, fatal = false){
-  const err = error instanceof Error ? error : new Error(error);
+export function errorHandler(error : unknown, message = ""){
+  let err = error instanceof Error ? error : 
+            typeof error === "string" ? new Error(error) : new Error();
+
+  if(message){
+    err = new Error(`${message} ${err.message}`);
+  }
 
   console.error(err.message);
 
-  if(fatal){
-    throw err;
-  }
   return err;
 }
 

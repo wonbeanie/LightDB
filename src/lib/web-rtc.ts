@@ -170,11 +170,10 @@ export class WebRTC {
 
     }
     catch(error){
-      const message = error instanceof Error ? error.message : error;
       this.initPromise = null;
       this.peer = null;
       this.peerId = null;
-      reject(errorHandler(`[WebRtc] WebRtc Initialization Failed: ${message}`));
+      reject(errorHandler(error, `[WebRtc] WebRtc Initialization Failed:`));
     }
   }
 
@@ -298,8 +297,7 @@ export class WebRTC {
       this.customHandlers.send();
     }
     catch(error){
-      const message = error instanceof Error ? error.message : error;
-      throw errorHandler(`[WebRtc] Send Failed: ${message}`);
+      throw errorHandler(error, `[WebRtc] Send Failed:`);
     }
   }
 
@@ -318,7 +316,7 @@ export class WebRTC {
     }
     catch(error){
       const message = error instanceof Error ? error.message : error;
-      throw errorHandler(`[WebRtc] Connect Failed: ${message}`);
+      throw errorHandler(error, `[WebRtc] Connect Failed:`);
     }
   }
 

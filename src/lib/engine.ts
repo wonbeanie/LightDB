@@ -48,8 +48,7 @@ export class LightDBEngine {
       return peerId;
     }
     catch(err){
-      const message = err instanceof Error ? err.message : err;
-      throw errorHandler(`[LightDB] Create Room Failed: ${message}`);
+      throw errorHandler(err, '[LightDB] Create Room Failed:');
     }
   }
 
@@ -60,8 +59,7 @@ export class LightDBEngine {
       this.roomId = targetId;
     }
     catch(err){
-      const message = err instanceof Error ? err.message : err;
-      throw errorHandler(`[LightDB] Join Room Failed: ${message}`);
+      throw errorHandler(err, '[LightDB] Join Room Failed:');
     }
   }
 

@@ -54,11 +54,5 @@ describe("유틸리티 테스트", () => {
       const result = errorHandler(message);
       expect(result).toBeInstanceOf(Error);
     });
-
-    test('fatal이 true일 때는 에러를 던져야 한다', () => {
-      const message = 'Fatal Error';
-
-      expect(() => errorHandler(message, true)).toThrow(message);
-    });
   });
 })

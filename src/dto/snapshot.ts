@@ -66,8 +66,7 @@ export class Snapshot{
       return new Snapshot(database, parsed.updateTimestamp as ParseUpdateTimestamp);
     }
     catch(err){
-      const message = err instanceof Error ? err.message : err;
-      throw errorHandler(`[Snapshot] Failed to convert string to object: ${message}`);
+      throw errorHandler(err, '[Snapshot] Failed to convert string to object:');
     }
   }
 }

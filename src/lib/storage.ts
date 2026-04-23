@@ -68,8 +68,7 @@ export class LightStorage {
       this.updateTimestamp = snapshot.updateTimestamp;
     }
     catch(error){
-      const message = error instanceof Error ? error.message : error;
-      throw errorHandler(`[Storage] Synchronization Failed: ${message}`);
+      throw errorHandler(error, '[Storage] Synchronization Failed:');
     }
   }
 
@@ -127,8 +126,7 @@ export class LightStorage {
       return Snapshot.parse(data);
     }
     catch(error){
-      const message = error instanceof Error ? error.message : error;
-      errorHandler(`[Storage] Failed to load: ${message}`);
+      errorHandler(error, '[Storage] Failed to load:');
       return new Snapshot(new Map());
     }
 
@@ -148,8 +146,7 @@ export class LightStorage {
         errorHandler("[Storage] Quota exceeded! Data might not be saved.");
       }
       else {
-        const message = error instanceof Error ? error.message : error;
-        errorHandler(`[Storage] Save Failed: ${message}`);
+        errorHandler(error, `[Storage] Save Failed:`);
       }
     }
   }

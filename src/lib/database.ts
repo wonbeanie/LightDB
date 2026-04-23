@@ -127,8 +127,7 @@ export class LiveDatabase {
       return await promise;
     }
     catch(error){
-      const message = error instanceof Error ? error.message : error;
-      throw errorHandler(`[Database] Database Update Failed: ${message}`);
+      throw errorHandler(error, '[Database] Database Update Failed:');
     }
   }
 
