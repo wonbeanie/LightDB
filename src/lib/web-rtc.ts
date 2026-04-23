@@ -187,40 +187,40 @@ export class WebRTC {
       this.connections[conn.peer] = conn;
       this.reconnectCount.set(conn.peer, 0);
 
-      if(conn.listenerCount('data') === 0){
-        conn.on('data', (response) => {
-          const {data, type} = response as PeerData<SnapshotPayload | WebRtcDispatchPayload>;
-          if(type === PeerDataType.SYNC){
-            this.onSyncDatabase(Snapshot.deserialize(data as SnapshotPayload));
-          }
-          else {
-            this.onUpdateDatabase(data as WebRtcDispatchPayload);
-          }
-          this.customHandlers.message(response);
-        });
-      }
-
-      if(conn.listenerCount('close') === 0){
-        conn.on('close', () => {
-          this.handleDisconnect(conn.peer, () => {
-            this.customHandlers.close(conn.peer);
-          });
-        });
-      }
-
-      if(conn.listenerCount('error') === 0){
-        conn.on('error', (err) => {
-          this.handleDisconnect(conn.peer, ()=>{
-            this.customHandlers.error(err);
-          });
-        });
-      }
-
       this.customHandlers.connection(conn.peer);
       if(this.onGetIsRoomChief()){
         this.syncDatabase(conn.peer);
       }
     });
+
+    if(conn.listenerCount('data') === 0){
+      conn.on('data', (response) => {
+        const {data, type} = response as PeerData<SnapshotPayload | WebRtcDispatchPayload>;
+        if(type === PeerDataType.SYNC){
+          this.onSyncDatabase(Snapshot.deserialize(data as SnapshotPayload));
+        }
+        else {
+          this.onUpdateDatabase(data as WebRtcDispatchPayload);
+        }
+        this.customHandlers.message(response);
+      });
+    }
+
+    if(conn.listenerCount('close') === 0){
+      conn.on('close', () => {
+        this.handleDisconnect(conn.peer, () => {
+          this.customHandlers.close(conn.peer);
+        });
+      });
+    }
+
+    if(conn.listenerCount('error') === 0){
+      conn.on('error', (err) => {
+        this.handleDisconnect(conn.peer, ()=>{
+          this.customHandlers.error(err);
+        });
+      });
+    }
   }
 
   /**
@@ -271,11 +271,6 @@ export class WebRTC {
     this.customHandlers.disconnect(DisconnectType.RECONNECT_RETRY);
     setTimeout(() => {
       this.reconnectCount.set(peerId, reconnectCount + 1);
-      if(this.peerId === peerId && this.peer){
-        this.peer.reconnect()
-        return;
-      }
-
       this.connect(peerId);
     }, this.reconnectTimeout);
   }
