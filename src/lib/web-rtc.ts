@@ -174,7 +174,7 @@ export class WebRTC {
       this.initPromise = null;
       this.peer = null;
       this.peerId = null;
-      throw errorHandler(`[WebRtc] WebRtc Initialization Failed: ${message}`);
+      reject(errorHandler(`[WebRtc] WebRtc Initialization Failed: ${message}`));
     }
   }
 
