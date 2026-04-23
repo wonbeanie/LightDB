@@ -4,9 +4,11 @@ import { MockConnection, MockPeer } from "../mock/mock-peerjs.js";
 
 export async function getInitWebRtc(config : {
   setup ?: (webRtc : WebRTC) => WebRTC,
-  afterInit ?: (webRtc : WebRTC) => WebRTC
+  afterInit ?: (webRtc : WebRTC) => WebRTC,
+  webRtc ?: WebRTC
 } = {}){
-  const setupWebRtc = config.setup ? config.setup(new WebRTC()) : new WebRTC();
+  const webRtc = config.webRtc ?? new WebRTC();
+  const setupWebRtc = config.setup ? config.setup(webRtc) : webRtc;
 
   await setupWebRtc.init();
 
@@ -17,11 +19,12 @@ export async function getInitWebRtc(config : {
   return initWebRTc;
 }
 
-export function setupMockPeerOnSpy(setup ?: (event : string, cb : Function) => void){
+export function setupMockPeerOnSpy(setup ?: (event : string, cb : Function, peerInstance : MockPeer) => void){
   const {mockConnection , spy : mockConnSpy} = setupMockConnectionOnSpy();
-  const spy = vi.spyOn(MockPeer.prototype, "on").mockImplementation((event : string, cb : Function) => {
+  const spy = vi.spyOn(MockPeer.prototype, "on").mockImplementation(function(this : MockPeer, event : string, cb : Function){
+    const peerInstance = this;
     if(setup){
-      setup(event, cb);
+      setup(event, cb, peerInstance);
       return;
     }
 
@@ -45,7 +48,7 @@ export function setupMockPeerOnSpy(setup ?: (event : string, cb : Function) => v
 
 export function setupMockConnectionOnSpy(setup ?: (event : string, cb : Function) => void){
   const mockConnection = new MockConnection();
-  const spy = vi.spyOn(MockConnection.prototype, "on").mockImplementation((event : string, cb : Function) => {
+  const spy = vi.spyOn(MockConnection.prototype, "on").mockImplementation(function(event : string, cb : Function){
     if(setup){
       setup(event, cb);
       return;

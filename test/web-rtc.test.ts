@@ -1,9 +1,10 @@
 import type { Mock } from "vitest";
 import { WebRTC } from "../src/lib/web-rtc.js";
-import { HandlerType, PeerDataType } from "../src/types/web-rtc.js";
+import { DisconnectType, HandlerType, PeerDataType } from "../src/types/web-rtc.js";
 import { getCommunicationData, getInitWebRtc, setupMockConnectionOnSpy, setupMockPeerOnSpy } from "./lib/web-rtc-helper.js";
 import { MockConnection, MockPeer } from "./mock/mock-peerjs.js";
 import type { Snapshot } from "../src/dto/snapshot.js";
+import { prototype } from "node:events";
 
 describe("WebRTC 테스트", () => {
   beforeEach(async ()=>{
@@ -37,6 +38,41 @@ describe("WebRTC 테스트", () => {
       expect(firstPromise).toStrictEqual(secondPromise);
   
       await Promise.all([firstPromise, secondPromise]);
+    });
+
+    test("초기화 도중 피어 객체에 Error 이벤트가 발생했을때 에러를 던져야 한다.", async () => {
+      setupMockPeerOnSpy((event, cb)=>{
+        if(event === "error"){
+          cb(new Error("Error Test"));
+          return;
+        }
+      });
+
+      await expect(notInitWebRtc.init()).rejects.toThrow("Error Test");
+    });
+
+    test("초기화가 실패했을때 에러를 던져야 한다.", async () => {
+      const MockPeerModule = await import("peerjs");
+      
+      vi.spyOn(MockPeerModule, "Peer").mockImplementation(function(){
+        throw new Error("Constructor Error");
+      });
+
+      await expect(notInitWebRtc.init()).rejects.toThrow("Constructor Error");
+    });
+
+    test("다른 피어와 연결시 에러를 던져야 한다.", async () => {
+      const { mockConnection } = setupMockPeerOnSpy();
+      mockConnection.send = vi.fn();
+
+      expect(() => notInitWebRtc.connect("test-peer")).toThrow("peer does not exist.");
+    });
+
+    test("초기화전 Destory가 호출되었을때 초기화 Promise는 reject되어야 한다.", async () => {
+      const initPromise = notInitWebRtc.init();
+      notInitWebRtc.destroy();
+
+      await expect(initPromise).rejects.toThrow("[WebRtc] Destroyed");
     });
   });
   
@@ -206,4 +242,232 @@ describe("WebRTC 테스트", () => {
     expect(mockCloseSpy).toHaveBeenCalled();
   });
 
+  describe("시그널링 서버와의 연결이", () => {
+    test("끊겼을때 재연결을 요청해야한다.", async () => {
+      let openCB : Function = () => {};
+      let disconnectCB : Function = () => {};
+
+      setupMockPeerOnSpy((event, cb) => {
+        if(event === "open"){
+          cb();
+          openCB = cb;
+          return;
+        }
+
+        if(event === "disconnected"){
+          disconnectCB = cb;
+          return;
+        }
+      });
+
+      const mockPeer = await getInitWebRtc();
+
+      const mockDisconnectHandler = vi.fn();
+      mockPeer.setHandler('disconnect', mockDisconnectHandler);
+
+      disconnectCB()
+
+      expect(mockDisconnectHandler).toHaveBeenCalledWith(DisconnectType.SIGNAL_FAIL);
+
+      openCB();
+
+      expect(mockDisconnectHandler).toHaveBeenCalledWith(DisconnectType.SIGNAL_SUCCESS);
+    });
+
+    test("올바르게 종료되었을때 disconnect 이벤트에 종료 완료 메세지를 전달해야한다.", async () => {
+      let openCB : Function = () => {};
+      let disconnectCB : Function = () => {};
+      let peerInstance : MockPeer | null = null;
+
+      setupMockPeerOnSpy((event, cb, instance) => {
+        peerInstance = instance;
+        if(event === "open"){
+          cb();
+          openCB = cb;
+          return;
+        }
+
+        if(event === "disconnected"){
+          disconnectCB = cb;
+          return;
+        }
+      });
+
+      const mockPeer = await getInitWebRtc();
+
+      const mockDisconnectHandler = vi.fn();
+      mockPeer.setHandler('disconnect', mockDisconnectHandler);
+
+      if(peerInstance){
+        (peerInstance as MockPeer).destroy();
+      }
+
+      disconnectCB()
+
+      expect(mockDisconnectHandler).toHaveBeenCalledWith(DisconnectType.SUCCESS);
+    });
+  });
+
+  describe("다른 피어와 연결이 끊겼을때" , () => {
+    test("peer가 destoryed되어 있다면 연결해제 이벤트에 해제완료 메세지를 전달해야한다.", async () => {
+      let closeCB : Function = () => {};
+      let peerInstance : MockPeer | null = null;
+
+      const {mockConnSpy} = setupMockPeerOnSpy((event, cb, instance) => {
+        peerInstance = instance;
+        if(event === "open"){
+          cb();
+          return;
+        }
+      })
+
+      mockConnSpy.mockImplementation((event, cb) => {
+        if(event === "open"){
+          cb();
+          return;
+        }
+
+        if(event === "close"){
+          closeCB = cb;
+          return;
+        }
+      });
+
+      const mockPeer = await getInitWebRtc({
+        afterInit : (webRtc) => {
+          webRtc.connect("test-peer");
+          return webRtc;
+        }
+      });
+
+      const mockDisconnectHandler = vi.fn();
+      mockPeer.setHandler('disconnect', mockDisconnectHandler);
+
+      if(peerInstance){
+        (peerInstance as MockPeer).destroy();
+      }
+
+      closeCB();
+
+      expect(mockDisconnectHandler).toHaveBeenCalledWith(DisconnectType.SUCCESS);
+    });
+
+    test("설정한 재연결 시간이후 재연결을 해야 한다.", async () => {
+      let closeCB : Function = () => {};
+      setupMockConnectionOnSpy((event, cb) => {
+        if(event === "open"){
+          cb();
+          return;
+        }
+
+        if(event === "close"){
+          closeCB = cb;
+          return;
+        }
+      });
+
+      const reconnectTimeout = 3000;
+      const mockPeer = await getInitWebRtc({
+        webRtc : new WebRTC({
+          reconnectTimeout
+        }),
+        afterInit : (webRtc) => {
+          webRtc.connect("test-peer");
+          return webRtc;
+        }
+      });
+      
+      const connectSpy = vi.spyOn(mockPeer, "connect");
+
+      const mockDisconnectHandler = vi.fn();
+      mockPeer.setHandler('disconnect', mockDisconnectHandler);
+
+      const connectionsLength = mockPeer.connectionsLength;
+
+      closeCB();
+
+      expect(mockPeer.connectionsLength).toBe(connectionsLength - 1);
+
+      expect(mockDisconnectHandler).toHaveBeenCalledWith(DisconnectType.RECONNECT_RETRY);
+
+      vi.advanceTimersByTime(reconnectTimeout);
+
+      expect(connectSpy).toHaveBeenCalled();
+    });
+
+    test("설정한 재연결 시간이후 재연결을 해야 한다.", async () => {
+      let closeCB : Function = () => {};
+      let errorCB : Function = () => {};
+
+      setupMockConnectionOnSpy((event, cb) => {
+        if(event === "open"){
+          cb();
+          return;
+        }
+
+        if(event === "close"){
+          closeCB = cb;
+          return;
+        }
+
+        if(event === "error"){
+          errorCB = cb;
+          return;
+        }
+      });
+
+      const reconnectTimeout = 3000;
+      const mockPeer = await getInitWebRtc({
+        webRtc : new WebRTC({
+          reconnectTimeout,
+          maxReconnectCount : 1
+        }),
+        afterInit : (webRtc) => {
+          webRtc.connect("test-peer");
+          return webRtc;
+        }
+      });
+      
+      vi.spyOn(mockPeer, "connect").mockImplementation(()=>{});
+
+      const mockDisconnectHandler = vi.fn();
+      mockPeer.setHandler('disconnect', mockDisconnectHandler);
+
+      closeCB();
+
+      vi.advanceTimersByTime(reconnectTimeout);
+
+      errorCB();
+
+      expect(mockDisconnectHandler).toHaveBeenCalledWith(DisconnectType.RECONNECT_FAIL);
+    });
+  });
+
+  test("데이터 전송을 요청할때 오류 발생시 에러를 던져야 한다.", async () => {
+    const { mockConnection } = setupMockPeerOnSpy();
+    mockConnection.send = vi.fn();
+
+    const webRtc = await getInitWebRtc({
+      afterInit : (webRtc) => {
+        webRtc.connect("test-peer");
+        return webRtc;
+      }
+    });
+
+    webRtc.setHandler("send", () => {
+      throw new Error("Send Error");
+    });
+
+    const testSendData = {
+      id : "test",
+      table : "/users",
+      data : {
+        id : 1,
+        name : "wonbeanie",
+        age : 22
+      }
+    }
+
+    expect(() => webRtc.send(testSendData)).toThrow("Send Error");
+  });
 });

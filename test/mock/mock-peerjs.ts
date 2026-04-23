@@ -2,6 +2,7 @@ import type { Mock } from "vitest";
 
 export class MockPeer {
   private events: Record<string, Function> = {};
+  destroyed = false;
 
   on(event: string, cb: Function){
     this.events[event] = cb;
@@ -17,7 +18,7 @@ export class MockPeer {
   }
 
   destroy(){
-
+    this.destroyed = true;
   }
 
   disconnect(){
