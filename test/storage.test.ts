@@ -207,4 +207,27 @@ describe("LightStorage 테스트", () => {
 
     expect(() => lightStorage.setStorage(new Snapshot(new Map(), 100))).toThrow("Quota exceeded");
   });
+
+  test("저장소를 지정하지 않았을때 환경에따라 저장소가 지정되어야 한다.", () => {
+    vi.stubGlobal('window', undefined);
+
+    const storageSpy = vi.spyOn(MemoryStorage.prototype, "getItem");
+    new LightStorage()
+
+    expect(storageSpy).toHaveBeenCalled();
+
+    const localStorageSpy = {
+      getItem : vi.fn()
+    };
+
+    vi.stubGlobal('window', {
+      localStorage : localStorageSpy
+    });
+
+    new LightStorage()
+
+    expect(localStorageSpy.getItem).toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+  });
 });
