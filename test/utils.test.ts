@@ -46,13 +46,13 @@ describe("유틸리티 테스트", () => {
       expect(console.error).toHaveBeenCalledWith(message);
     });
 
-    test('fatal이 false(기본값)일 때는 에러를 던지지 않고 반환해야 한다', () => {
-      const message = 'Not Fatal';
-      
-      expect(() => errorHandler(message)).not.toThrow();
-      
-      const result = errorHandler(message);
+    test('message을 문자열로 받으면 message를 추가한 새로운 Error 객체를 반환해야 한다.', () => {
+      const error = new Error('Original Error');
+      const message = 'Additional Message';
+      const result = errorHandler(error, message);
+
       expect(result).toBeInstanceOf(Error);
+      expect(result.message).toBe(`${message} ${error.message}`);
     });
   });
 })

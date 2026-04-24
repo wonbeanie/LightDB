@@ -174,4 +174,37 @@ describe("LightStorage 테스트", () => {
     expect(removeData.database.users).toBeUndefined();
     expect(removeData.updateTimestamp).toBe(2000);
   });
+
+  test("동기화 시 올바르지않는 Snapshot이 전달되면 에러를 던져야 한다.", () => {
+    const oldSnapshot = {
+      database : new Map()
+    } as any;
+    
+    expect(() => lightStorage.syncStorage(oldSnapshot)).toThrow("Received invalid snapshot for sync");
+  });
+
+  test("Snapshot을 요청시 모든 데이터를 새로운 Snapshot 객체로 반환해야된다.", () => {
+    const testKey = "users";
+    const testData = {id: 1, name : "test", age : 22};
+
+    lightStorage.set(testKey, testData);
+    const snapshot = lightStorage.getSnapshot();
+
+    expect(snapshot).toStrictEqual(new Snapshot(new Map([[testKey, testData]]), 0));
+  });
+
+  test("저장소에 데이터를 저장도중 에러가 발생하면 에러를 던져야 한다.", () => {
+    vi.spyOn(mockStorage, "setItem").mockImplementation(() => {
+      throw new Error("Test Error");
+    });
+
+    expect(() => lightStorage.setStorage(new Snapshot(new Map(), 100))).toThrow("Test Error");
+
+    vi.spyOn(mockStorage, "setItem").mockImplementation(() => {
+      let qotaExceededError = new DOMException("QuotaExceededError", "QuotaExceededError");
+      throw qotaExceededError;
+    });
+
+    expect(() => lightStorage.setStorage(new Snapshot(new Map(), 100))).toThrow("Quota exceeded");
+  });
 });
