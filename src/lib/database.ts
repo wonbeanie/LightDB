@@ -124,7 +124,10 @@ export class LiveDatabase {
         });
       }
 
-      return await promise;
+      const newDatabase = await promise;
+
+      this.onUpdateComplete();
+      return newDatabase;
     }
     catch(error){
       throw errorHandler(error, '[Database] Database Update Failed:');
@@ -190,8 +193,7 @@ export class LiveDatabase {
       }
     }
 
-    this.onUpdateComplete();
-
+    
     if(this.roomChief && send){
       this.onSend({
         id,
@@ -200,6 +202,8 @@ export class LiveDatabase {
         clear,
       });
     }
+
+    this.onUpdateComplete();
   }
 
   /**

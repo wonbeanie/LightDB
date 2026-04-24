@@ -26,6 +26,7 @@ export class LightDBEngine {
     this.db.onSend = (data) => this.rtc.send(data);
     this.db.onUpdateComplete = () => {
       this.setDatabase();
+      this.roomChief = this.db.roomChief;
       this.onUpdateComplete();
     };
     
@@ -45,6 +46,7 @@ export class LightDBEngine {
       this.db.roomChief = true;
       this.roomChief = true;
       this.roomId = peerId;
+      this.onUpdateComplete();
       return peerId;
     }
     catch(err){
@@ -57,6 +59,7 @@ export class LightDBEngine {
       await this.rtc.init();
       this.rtc.connect(targetId);
       this.roomId = targetId;
+      this.onUpdateComplete();
     }
     catch(err){
       throw errorHandler(err, '[LightDB] Join Room Failed:');
