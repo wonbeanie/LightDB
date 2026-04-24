@@ -60,6 +60,7 @@ export class LiveDatabase {
 
   /**
    * 외부에서 커스텀 키를 받아 저장소에 전파하기 위한 메서드
+   * @see {@link LightStorage.onSetStorageKey}
    */
   public onSetStorageKey = (key : string) => {
     this.storage.onSetStorageKey(key);
