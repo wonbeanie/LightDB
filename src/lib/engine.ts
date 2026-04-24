@@ -25,7 +25,7 @@ export class LightDBEngine {
     
     this.db.onSend = (data) => this.rtc.send(data);
     this.db.onUpdateComplete = () => {
-      this.setDatabase();
+      this.syncDatabase();
       this.roomChief = this.db.roomChief;
       this.onUpdateComplete();
     };
@@ -98,7 +98,7 @@ export class LightDBEngine {
     this.roomChief = false;
   }
 
-  setDatabase(){
+  private syncDatabase(){
     this.database = this.db.database;
     this.updateTimestamp = formatNow();
   }
