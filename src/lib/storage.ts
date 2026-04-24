@@ -143,10 +143,10 @@ export class LightStorage {
     }
     catch(error){
       if(error instanceof DOMException && error.name === "QuotaExceededError"){
-        errorHandler("[Storage] Quota exceeded! Data might not be saved.");
+        throw errorHandler("[Storage] Quota exceeded! Data might not be saved.");
       }
       else {
-        errorHandler(error, `[Storage] Save Failed:`);
+        throw errorHandler(error, `[Storage] Save Failed:`);
       }
     }
   }
