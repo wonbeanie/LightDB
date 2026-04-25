@@ -4,7 +4,6 @@ import { DisconnectType, HandlerType, PeerDataType } from "../src/types/web-rtc.
 import { getCommunicationData, getInitWebRtc, setupMockConnectionOnSpy, setupMockPeerOnSpy } from "./lib/web-rtc-helper.js";
 import { MockConnection, MockPeer } from "./mock/mock-peerjs.js";
 import type { Snapshot } from "../src/dto/snapshot.js";
-import { prototype } from "node:events";
 
 describe("WebRTC 테스트", () => {
   beforeEach(async ()=>{

@@ -8,6 +8,7 @@ describe("engine 테스트", () => {
   
   beforeEach(() => {
     engine = new LightDBEngine();
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {

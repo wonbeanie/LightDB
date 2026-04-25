@@ -12,6 +12,7 @@ describe("LightStorage 테스트", () => {
     })
     mockStorage = new MemoryStorage();
     lightStorage = new LightStorage(mockStorage);
+    vi.spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
