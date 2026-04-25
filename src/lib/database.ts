@@ -249,8 +249,8 @@ export class LiveDatabase {
     return this.storage.getSnapshot();
   }
 
-  public removeTable(table : TableKey){
-    this.updateDB(table, {}, true);
+  public async removeTable(table : TableKey){
+    return this.updateDB(table, {}, true);
   }
 
   get database(){

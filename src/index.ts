@@ -147,9 +147,9 @@ export class LightDB {
    * 데이터베이스의 특정 테이블 데이터를 삭제하는 메서드
    * @param table - 삭제할 테이블 키
    */
-  remove(table: string){
+  async remove(table: string){
     const {engine} = internals.get(this)!;
-    engine.remove(table);
+    return engine.remove(table);
   }
 }
 
