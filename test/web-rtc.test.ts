@@ -4,6 +4,7 @@ import { DisconnectType, HandlerType, PeerDataType } from "../src/types/web-rtc.
 import { getCommunicationData, getInitWebRtc, setupMockConnectionOnSpy, setupMockPeerOnSpy } from "./lib/web-rtc-helper.js";
 import { MockConnection, MockPeer } from "./mock/mock-peerjs.js";
 import type { Snapshot } from "../src/dto/snapshot.js";
+import { peerLoader } from "../src/lib/peerLoader.js";
 
 describe("WebRTC 테스트", () => {
   beforeEach(async ()=>{
@@ -72,6 +73,12 @@ describe("WebRTC 테스트", () => {
       notInitWebRtc.destroy();
 
       await expect(initPromise).rejects.toThrow("[WebRtc] Destroyed");
+    });
+
+    test("peerjs 불러오기가 실패했을때 에러를 던져야 한다.", async () => {
+      vi.spyOn(peerLoader, "load").mockRejectedValue(new Error("Import Error"));
+
+      await expect(notInitWebRtc.init()).rejects.toThrow("Import Error");
     });
   });
   

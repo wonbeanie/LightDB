@@ -26,9 +26,10 @@
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.4",
+    "peerjs": "^1.5.5"
   },
-  "dependencies": {
+  "peerDependencies": {
     "peerjs": "^1.5.5"
   }
 }

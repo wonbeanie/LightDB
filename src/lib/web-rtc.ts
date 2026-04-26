@@ -4,6 +4,7 @@ import { Snapshot } from "../dto/snapshot.js";
 import type { SnapshotPayload } from "../types/database.js";
 import { createPeerData } from "../dto/peer-data.js";
 import { DisconnectType, HandlerType, PeerDataType, type Connections, type InitPromise, type PeerData, type PeerEventMap, type PeerID, type WebRtcConfig, type WebRtcDispatchPayload } from "../types/web-rtc.js";
+import { peerLoader } from "./peerLoader.js"
 
 /**
  * PeerJS를 이용한 WebRtc 통신을 하는 클래스
@@ -128,8 +129,17 @@ export class WebRTC {
   }
 
   private async startPeerSetup(resolve : (peerId : PeerID) => void, reject : (err: Error) => void){
+    let PeerModule;
+
+    try {
+      PeerModule = await peerLoader.load()
+    }
+    catch(error){
+      this.resetPeerState();
+      return reject(errorHandler(error, `[WebRtc] Peerjs Import Failed:`));
+    }
+
     try{
-      const PeerModule = await import("peerjs");
       const Peer = PeerModule.Peer || PeerModule.default;
 
       const peer = new Peer();
@@ -170,9 +180,7 @@ export class WebRTC {
 
     }
     catch(error){
-      this.initPromise = null;
-      this.peer = null;
-      this.peerId = null;
+      this.resetPeerState();
       reject(errorHandler(error, `[WebRtc] WebRtc Initialization Failed:`));
     }
   }
@@ -325,14 +333,12 @@ export class WebRTC {
 
     if(this.peer){
       this.peer.destroy();
-      this.peer = null;
     }
 
-    this.peerId = null;
     if(this.initPromise){
       this.initPromise.reject(new Error('[WebRtc] Destroyed'));
-      this.initPromise = null;
     }
+
     this.customHandlers = {
       connection: () => {},
       close: () => {},
@@ -341,6 +347,14 @@ export class WebRTC {
       error: () => {},
       disconnect: () => {},
     };
+    
+    this.resetPeerState();
+  }
+
+  private resetPeerState() {
+    this.initPromise = null;
+    this.peer = null;
+    this.peerId = null;
   }
 
   get connectionsLength(){
