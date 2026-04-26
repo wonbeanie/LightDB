@@ -36,10 +36,31 @@ npm install lightdb peerjs
 pnpm add lightdb peerjs
 ```
 
+## 🧩 사용 방식
+
+LightDB는 기본적으로 **싱글턴 인스턴스**를 제공합니다.  
+별도의 인스턴스 생성 없이 바로 사용할 수 있습니다.
+
+```javascript
+import lightDB from '@wonbeanie/lightdb';
+
+await lightDB.createRoom();
+```
+
+필요한 경우 `LightDB` 클래스를 직접 import하여
+독립적인 인스턴스를 생성할 수도 있습니다.
+
+```javascript
+import { LightDB } from '@wonbeanie/lightdb';
+
+const db1 = new LightDB();
+const db2 = new LightDB();
+```
+
 ### 방 생성 (Host)
 
 ```javascript
-import lightDB from 'lightdb';
+import lightDB from '@wonbeanie/lightdb';
 
 // 1. 데이터 구독
 lightDB.on('users', (data) => {
@@ -59,7 +80,7 @@ await lightDB.update('users', {
 ### 방 참여 (Client)
 
 ```javascript
-import lightDB from 'lightdb';
+import lightDB from '@wonbeanie/lightdb';
 
 // 방장이 공유한 ID로 접속
 await lightDB.joinRoom('room-id');
