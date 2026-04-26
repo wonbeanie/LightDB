@@ -37,25 +37,42 @@ describe("Entry 테스트", () => {
     });
     
     test("엔진의 상태가 변경되면 LightDB의 프로퍼티들도 업데이트되어야 한다.", async () => {
-      mockEngine.database = {data : 'updated'};
+      const mockData = {
+        users : {
+          monster : {
+            id : 1,
+            name : "mons",
+            age : 550
+          }
+        }
+      };
+      vi.spyOn(mockEngine, "database", "get").mockReturnValue(mockData);
+
       mockEngine.roomChief = true;
       mockEngine.roomId = 'test-peer-id';
       mockEngine.updateTimestamp = "2026-04-25 18:31:22";
 
       mockEngine.onUpdateComplete();
 
-      expect(mockEngineLightDB.database).toEqual({ data : 'updated' });
+      expect(mockEngineLightDB.database).toEqual(mockData);
       expect(mockEngineLightDB.roomChief).toBe(true);
       expect(mockEngineLightDB.roomId).toBe('test-peer-id');
       expect(mockEngineLightDB.updateTimestamp).toBe("2026-04-25 18:31:22");
     });
 
-    test("createRoom 호출 시 sorageKey가 있으면 엔진의 onSetStorageKey 먼저 호출해야 한다.", async () => {
+    test("createRoom 호출 시 storageKey가 있으면 엔진의 onSetStorageKey 먼저 호출해야 한다.", async () => {
       const keySpy = vi.spyOn(mockEngine, "onSetStorageKey");
 
       await mockEngineLightDB.createRoom("test-peer-id");
 
       expect(keySpy).toHaveBeenCalledWith("test-peer-id");
+      expect(mockEngine.createRoom).toHaveBeenCalled();
+
+      keySpy.mockClear();
+
+      await mockEngineLightDB.createRoom();
+  
+      expect(keySpy).not.toHaveBeenCalledWith("test-peer-id");
       expect(mockEngine.createRoom).toHaveBeenCalled();
     });
   });
@@ -114,12 +131,23 @@ describe("Entry 테스트", () => {
     test("데이터 업데이트 및 삭제 요청이 엔진으로 올바르게 위임되어야 한다.", async () => {
       const updateSpy = vi.spyOn(OriginEngine.prototype, "update").mockResolvedValue({});
       const clearSpy = vi.spyOn(OriginEngine.prototype, "clear").mockResolvedValue({});
+      const removeSpy = vi.spyOn(OriginEngine.prototype, "remove").mockResolvedValue({});
     
       await lightDB.update("/users", { name: "mons" });
       expect(updateSpy).toHaveBeenCalledWith("/users", { name: "mons" });
 
       await lightDB.clear();
       expect(clearSpy).toHaveBeenCalled();
+    
+      await lightDB.remove("/users");
+      expect(removeSpy).toHaveBeenCalledWith("/users");
+    });
+
+    test("joinRoom 요청시 엔진으로 올바르게 위임되어야 한다.", async () => {
+      const joinRoomSpy = vi.spyOn(OriginEngine.prototype, "joinRoom").mockResolvedValue();
+    
+      await lightDB.joinRoom("test-peer-id");
+      expect(joinRoomSpy).toHaveBeenCalledWith("test-peer-id");
     });
   })
 });
