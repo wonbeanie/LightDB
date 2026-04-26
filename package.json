@@ -1,7 +1,7 @@
 {
-  "name": "lightdb",
+  "name": "@wonbeanie/lightdb",
   "version": "1.0.0",
-  "description": "",
+  "description": "A serverless, real-time P2P database based on WebRTC and PeerJS",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
@@ -15,9 +15,18 @@
     "test:coverage": "vitest --coverage"
   },
   "type": "module",
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "database",
+    "webrtc",
+    "peerjs",
+    "p2p",
+    "realtime",
+    "serverless",
+    "localstorage",
+    "json-db"
+  ],
+  "author": "kwangwon ko (goobb2580@gmail.com)",
+  "license": "MIT",
   "packageManager": "pnpm@10.30.1",
   "devDependencies": {
     "@types/node": "^25.5.0",
@@ -31,5 +40,9 @@
   },
   "peerDependencies": {
     "peerjs": "^1.5.5"
+  },
+  "repository": {
+    "type" : "git",
+    "url": "git+https://github.com/wonbeanie/LightDB.git"
   }
 }
