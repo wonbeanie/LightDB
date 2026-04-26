@@ -1,5 +1,8 @@
 {
   "name": "@wonbeanie/lightdb",
+  "publishConfig": {
+    "access": "public"
+  },
   "version": "1.0.0",
   "description": "A serverless, real-time P2P database based on WebRTC and PeerJS",
   "main": "./dist/index.js",
