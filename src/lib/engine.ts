@@ -18,15 +18,7 @@ export class LightDBEngine {
   public storage : LightStorage;
 
   /**
-   * 현재 메모리에 로드된 전체 데이터베이스의 레코드 객체
-   * @remarks
-   * * 직접 수정해서는 안 되며, 데이터 변경은 'update()' 또는 'remove()' 메서드를 사용해야됩니다.
-   * * 데이터가 갱신될 때마다 'updateTimestamp'와 함께 업데이트됩니다.
-   */
-  public database = {};
-
-  /**
-   * 현재 {@link database}를 업데이트한 시간
+   * 현재 {@link LightStorage.database}를 업데이트한 시간
    * @remarks - 'YYYY-MM-DD hh:mm:ss' 형식으로 표현하고있습니다.
    */
   public updateTimestamp : string = "";
@@ -58,7 +50,7 @@ export class LightDBEngine {
     
     this.db.onSend = (data) => this.rtc.send(data);
     this.db.onUpdateComplete = () => {
-      this.syncDatabase();
+      this.updateTimestamp = formatNow();
       this.roomChief = this.db.roomChief;
       this.onUpdateComplete();
     };
@@ -168,16 +160,7 @@ export class LightDBEngine {
     this.rtc.destroy();
     this.db.destroy();
     this.roomId = null;
-    this.database = {};
     this.roomChief = false;
-  }
-
-  /**
-   * 저장소에서 데이터를 레코드형식으로 가져와 갱신하는 메서드 
-   */
-  private syncDatabase(){
-    this.database = this.db.database;
-    this.updateTimestamp = formatNow();
   }
 
   /**
@@ -186,5 +169,12 @@ export class LightDBEngine {
    */
   public async remove(table : string){
     return this.db.removeTable(table);
+  }
+
+  /**
+   * 현재 메모리에 로드된 전체 데이터베이스의 레코드 객체
+   */
+  get database(){
+    return this.db.database;
   }
 }
