@@ -3,7 +3,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A serverless, real-time P2P database based on WebRTC and PeerJS",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -45,7 +45,7 @@
     "peerjs": "^1.5.5"
   },
   "repository": {
-    "type" : "git",
+    "type": "git",
     "url": "git+https://github.com/wonbeanie/LightDB.git"
   }
 }
