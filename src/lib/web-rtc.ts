@@ -162,8 +162,7 @@ export class WebRTC {
       });
   
       peer.on('error', (err) => {
-        const message = err instanceof Error ? err.message : err;
-        reject(new Error(`Peer connection error: ${message}`));
+        reject(errorHandler(ErrorType.WEBRTC, "Peer connection error:", err));
         this.peer = null;
         this.initPromise = null;
       });
@@ -190,46 +189,65 @@ export class WebRTC {
    * 다른 Peer와 연결되었을때 호출되어 주요 이벤트를 연결하는 메서드
    * @param conn - 연결된 Peer {@link DataConnection} 객체
    */
-  private handleConnection = (conn : DataConnection) => {
-    if (this.connections[conn.peer]) return;
-    conn.on('open', () => {
-      this.connections[conn.peer] = conn;
-      this.reconnectCount.set(conn.peer, 0);
+  private handleConnection = async (conn : DataConnection) => {
+    if (this.connections[conn.peer]) return Promise.resolve(true);
 
-      this.customHandlers.connection(conn.peer);
-      if(this.onGetIsRoomChief()){
-        this.syncDatabase(conn.peer);
+    let timeout : number | null = null;
+
+    const promise = new Promise((resolve, reject) => {
+      conn.on('open', () => {
+        this.connections[conn.peer] = conn;
+        this.reconnectCount.set(conn.peer, 0);
+  
+        this.customHandlers.connection(conn.peer);
+        if(this.onGetIsRoomChief()){
+          this.syncDatabase(conn.peer);
+        }
+        resolve(true);
+      });
+
+      if(conn.listenerCount('data') === 0){
+        conn.on('data', (response) => {
+          const {data, type} = response as PeerData<SnapshotPayload | WebRtcDispatchPayload>;
+          if(type === PeerDataType.SYNC){
+            this.onSyncDatabase(Snapshot.deserialize(data as SnapshotPayload));
+          }
+          else {
+            this.onUpdateDatabase(data as WebRtcDispatchPayload);
+          }
+          this.customHandlers.message(response);
+        });
       }
+  
+      if(conn.listenerCount('close') === 0){
+        conn.on('close', () => {
+          this.handleDisconnect(conn.peer, () => {
+            this.customHandlers.close(conn.peer);
+          });
+        });
+      }
+  
+      if(conn.listenerCount('error') === 0){
+        conn.on('error', (err) => {
+          this.handleDisconnect(conn.peer, ()=>{
+            this.customHandlers.error(err);
+          });
+          reject(errorHandler(ErrorType.WEBRTC, "Connection Timeout", err));
+        });
+      }
+
+      timeout = setTimeout(() => {
+        reject(errorHandler(ErrorType.WEBRTC, "Connection Timeout"));
+      }, 5000);
     });
 
-    if(conn.listenerCount('data') === 0){
-      conn.on('data', (response) => {
-        const {data, type} = response as PeerData<SnapshotPayload | WebRtcDispatchPayload>;
-        if(type === PeerDataType.SYNC){
-          this.onSyncDatabase(Snapshot.deserialize(data as SnapshotPayload));
-        }
-        else {
-          this.onUpdateDatabase(data as WebRtcDispatchPayload);
-        }
-        this.customHandlers.message(response);
-      });
+    const complete = await promise;
+
+    if(complete && timeout){
+      clearTimeout(timeout);
     }
 
-    if(conn.listenerCount('close') === 0){
-      conn.on('close', () => {
-        this.handleDisconnect(conn.peer, () => {
-          this.customHandlers.close(conn.peer);
-        });
-      });
-    }
-
-    if(conn.listenerCount('error') === 0){
-      conn.on('error', (err) => {
-        this.handleDisconnect(conn.peer, ()=>{
-          this.customHandlers.error(err);
-        });
-      });
-    }
+    return complete;
   }
 
   /**
@@ -316,7 +334,7 @@ export class WebRTC {
         throw new Error("peer does not exist.");
       }
       const conn = this.peer.connect(targetId);
-      this.handleConnection(conn);
+      return this.handleConnection(conn);
     }
     catch(error){
       throw errorHandler(ErrorType.WEBRTC, `Connect Failed:`, error);

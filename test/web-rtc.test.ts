@@ -48,7 +48,7 @@ describe("WebRTC 테스트", () => {
         }
       });
 
-      await expect(notInitWebRtc.init()).rejects.toThrow("Error Test");
+      await expect(notInitWebRtc.init()).rejects.toThrow("[WebRtc] Peer connection error:");
     });
 
     test("초기화가 실패했을때 에러를 던져야 한다.", async () => {
@@ -434,7 +434,7 @@ describe("WebRTC 테스트", () => {
         }
       });
       
-      vi.spyOn(mockPeer, "connect").mockImplementation(()=>{});
+      vi.spyOn(mockPeer, "connect").mockImplementation(()=> Promise.resolve(true));
 
       const mockDisconnectHandler = vi.fn();
       mockPeer.setHandler('disconnect', mockDisconnectHandler);
@@ -475,5 +475,25 @@ describe("WebRTC 테스트", () => {
     }
 
     expect(() => webRtc.send(testSendData)).toThrow("[WebRtc] Send Failed:");
+  });
+
+  test("연결이 5초 이내에 open되지 않으면 타임아웃 에러를 발생시켜야 한다", async () => {
+    let openCB : Function = () => {};
+
+    setupMockConnectionOnSpy((event, cb) => {
+      if(event === "open"){
+        openCB = cb;
+        return;
+      }
+    });
+
+    const timeout = 5000;
+    const mockPeer = await getInitWebRtc();
+
+    const promise = mockPeer.connect("test-peer");
+
+    vi.advanceTimersByTime(timeout);
+
+    await expect(promise).rejects.toThrow("[WebRtc] Connection Timeout");
   });
 });

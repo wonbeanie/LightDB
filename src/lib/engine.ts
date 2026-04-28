@@ -95,16 +95,18 @@ export class LightDBEngine {
    * @throws WebRtc 초기화에 실패, 방장과의 연결 수립 실패시 발생
    */
   public async joinRoom(targetId: string){
-    try{
-      await this.rtc.init();
-      this.rtc.connect(targetId);
-      this.roomId = targetId;
-      this.onUpdateComplete();
-    }
-    catch(err){
-      throw errorHandler(err, '[LightDB] Join Room Failed:');
-    }
+    return new Promise(async (resolve, reject) => {
+      try{
+        await this.rtc.init();
+        await this.rtc.connect(targetId);
+        this.roomId = targetId;
+        this.onUpdateComplete();
+        resolve(true);
+      }
+      catch(err){
         reject(errorHandler(ErrorType.LIGHTDB, 'Join Room Failed:', err));
+      }
+    });
   }
 
   /**

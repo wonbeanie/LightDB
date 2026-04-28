@@ -251,7 +251,7 @@ export class LiveDatabase {
 
     if(this.updateResolveQueue.size > 0){
       this.updateResolveQueue.forEach(resolveData => {
-        resolveData.reject(new Error("[Database] Destroyed"));
+        resolveData.reject(errorHandler(ErrorType.DATABASE, "Destroyed"));
       });
       this.updateResolveQueue.clear();
     }

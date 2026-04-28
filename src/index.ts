@@ -75,7 +75,7 @@ export class LightDB {
    */
   async joinRoom(targetId: string){
     const {engine} = internals.get(this)!;
-    engine.joinRoom(targetId);
+    return engine.joinRoom(targetId);
   }
 
   /**
