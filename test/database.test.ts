@@ -190,5 +190,32 @@ describe("LiveDatabase 테스트", () => {
   test("외부에서 커스텀키를 수정하면 저장소에 전달하여야 한다.", () => {
     db.onSetStorageKey("TEST-KEY");
     expect(mockStorage.onSetStorageKey).toHaveBeenCalled();
+  });
+
+  test("구독된 리스너 실행 도중 에러가 발생하면 에러를 던져야 한다.", async () => {
+    db.addDBListener("/users", () => {
+      throw new Error("Test Error");
+    });
+
+    expect(() => {
+      db.onValue({
+        id : "test",
+        table : "/users",
+        data : {}
+      })
+    }).toThrow("[Listener] Lisatener Error:");
+
+    db.addDBListener("/users", () => {
+      throw new Error("Test Error");
+    });
+
+    expect(() => {
+      db.onValue({
+        id : "test",
+        table : DB_PATH.ROOT,
+        data : {},
+        clear: true
+      })
+    }).toThrow("[Listener] Lisatener Error:");
   })
 })

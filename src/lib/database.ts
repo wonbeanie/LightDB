@@ -218,15 +218,26 @@ export class LiveDatabase {
       return;
     }
     const handler = this.listener.get(table) || function(){};
-    handler(data);
+    
+    try{
+      handler(data);
+    }
+    catch(err){
+      throw errorHandler(ErrorType.LISTENER, 'Lisatener Error:', err);
+    }
   }
 
   /**
    * 구독한 모든 리스너에게 초기화된 값을 전달하는 메서드
    */
   private emitAllCallbackClear(){
-    for(const handler of this.listener.values()){
-      handler({});
+    try{
+      for(const handler of this.listener.values()){
+        handler({});
+      }
+    }
+    catch(err){
+      throw errorHandler(ErrorType.LISTENER, 'Lisatener Error:', err);
     }
   }
 
