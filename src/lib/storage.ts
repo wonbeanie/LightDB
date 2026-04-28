@@ -1,6 +1,7 @@
 import { Snapshot } from "../dto/snapshot.js";
 import type { Database, DatabaseData } from "../types/database.js";
 import type { ParseStorageData, StorageEngine } from "../types/storage.js";
+import { ErrorType } from "../types/utils.js";
 import { MemoryStorage } from "./memory-storage.js";
 import { errorHandler } from "./utils.js";
 
@@ -68,7 +69,7 @@ export class LightStorage {
       this.updateTimestamp = snapshot.updateTimestamp;
     }
     catch(error){
-      throw errorHandler(error, '[Storage] Synchronization Failed:');
+      throw errorHandler(ErrorType.STORAGE, 'Synchronization Failed:', error);
     }
   }
 
@@ -126,7 +127,7 @@ export class LightStorage {
       return Snapshot.parse(data);
     }
     catch(error){
-      errorHandler(error, '[Storage] Failed to load:');
+      console.error(errorHandler(ErrorType.STORAGE, 'Failed to load:', error).message);
       return new Snapshot(new Map());
     }
 
@@ -143,10 +144,10 @@ export class LightStorage {
     }
     catch(error){
       if(error instanceof DOMException && error.name === "QuotaExceededError"){
-        throw errorHandler("[Storage] Quota exceeded! Data might not be saved.");
+        throw errorHandler(ErrorType.STORAGE,"Quota exceeded! Data might not be saved.", error);
       }
       else {
-        throw errorHandler(error, `[Storage] Save Failed:`);
+        throw errorHandler(ErrorType.STORAGE, `Save Failed:`, error);
       }
     }
   }

@@ -136,21 +136,19 @@ describe("engine 테스트", () => {
   });
 
   test("방 생성 도중 오류 발생시 에러를 던져야 한다.", async () => {
-    const mockErrorMessage = "Error Test";
-    vi.spyOn(engine.rtc, "init").mockRejectedValue(new Error(mockErrorMessage));
+    vi.spyOn(engine.rtc, "init").mockRejectedValue(new Error("Error Test"));
 
-    await expect(engine.createRoom()).rejects.toThrow(mockErrorMessage);
+    await expect(engine.createRoom()).rejects.toThrow("[LightDB] Create Room Failed:");
   });
 
   test("방 입장 도중 오류 발생시 에러를 던져야 한다.", async () => {
-    const mockErrorMessage = "Error Test";
     const mockTestId = "test-peer-id";
     vi.spyOn(engine.rtc, "init").mockResolvedValue(mockTestId);
     vi.spyOn(engine.rtc, "connect").mockImplementation(() => {
-      throw new Error(mockErrorMessage);
+      throw new Error("Error Test");
     });
 
-    await expect(engine.joinRoom(mockTestId)).rejects.toThrow(mockErrorMessage);
+    await expect(engine.joinRoom(mockTestId)).rejects.toThrow("[LightDB] Join Room Failed:");
   });
 
   test("생성자 콜백 함수들 강제 실행", () => {

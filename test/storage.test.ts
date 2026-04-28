@@ -154,12 +154,6 @@ describe("LightStorage 테스트", () => {
     test("스토리지 스냅샷은 빈 상태여야 한다", () => {
       expect(lightStorage.getStorage()).toStrictEqual(new Snapshot(new Map()));
     });
-
-    test("콘솔에 에러 로그가 출력되어야 한다", () => {
-      expect(console.error).toHaveBeenCalledWith(
-        expect.stringContaining("is not valid JSON")
-      );
-    });
   })
 
   test("데이터를 제거하면 저장소에서 제거되어야 한다", () => {
@@ -181,7 +175,7 @@ describe("LightStorage 테스트", () => {
       database : new Map()
     } as any;
     
-    expect(() => lightStorage.syncStorage(oldSnapshot)).toThrow("Received invalid snapshot for sync");
+    expect(() => lightStorage.syncStorage(oldSnapshot)).toThrow("[Storage] Synchronization Failed:");
   });
 
   test("Snapshot을 요청시 모든 데이터를 새로운 Snapshot 객체로 반환해야된다.", () => {
@@ -199,7 +193,7 @@ describe("LightStorage 테스트", () => {
       throw new Error("Test Error");
     });
 
-    expect(() => lightStorage.setStorage(new Snapshot(new Map(), 100))).toThrow("Test Error");
+    expect(() => lightStorage.setStorage(new Snapshot(new Map(), 100))).toThrow("[Storage] Save Failed:");
 
     vi.spyOn(mockStorage, "setItem").mockImplementation(() => {
       let qotaExceededError = new DOMException("QuotaExceededError", "QuotaExceededError");

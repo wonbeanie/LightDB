@@ -5,6 +5,7 @@ import type { SnapshotPayload } from "../types/database.js";
 import { createPeerData } from "../dto/peer-data.js";
 import { DisconnectType, HandlerType, PeerDataType, type Connections, type InitPromise, type PeerData, type PeerEventMap, type PeerID, type WebRtcConfig, type WebRtcDispatchPayload } from "../types/web-rtc.js";
 import { peerLoader } from "./peerLoader.js"
+import { ErrorType } from "../types/utils.js";
 
 /**
  * PeerJS를 이용한 WebRtc 통신을 하는 클래스
@@ -136,7 +137,7 @@ export class WebRTC {
     }
     catch(error){
       this.resetPeerState();
-      return reject(errorHandler(error, `[WebRtc] Peerjs Import Failed:`));
+      return reject(errorHandler(ErrorType.WEBRTC, `Peerjs Import Failed:`, error));
     }
 
     try{
@@ -181,7 +182,7 @@ export class WebRTC {
     }
     catch(error){
       this.resetPeerState();
-      reject(errorHandler(error, `[WebRtc] WebRtc Initialization Failed:`));
+      reject(errorHandler(ErrorType.WEBRTC, `WebRtc Initialization Failed:`, error));
     }
   }
 
@@ -300,7 +301,7 @@ export class WebRTC {
       this.customHandlers.send();
     }
     catch(error){
-      throw errorHandler(error, `[WebRtc] Send Failed:`);
+      throw errorHandler(ErrorType.WEBRTC, `Send Failed:`, error);
     }
   }
 
@@ -318,8 +319,7 @@ export class WebRTC {
       this.handleConnection(conn);
     }
     catch(error){
-      const message = error instanceof Error ? error.message : error;
-      throw errorHandler(error, `[WebRtc] Connect Failed:`);
+      throw errorHandler(ErrorType.WEBRTC, `Connect Failed:`, error);
     }
   }
 
@@ -336,7 +336,7 @@ export class WebRTC {
     }
 
     if(this.initPromise){
-      this.initPromise.reject(new Error('[WebRtc] Destroyed'));
+      this.initPromise.reject(errorHandler(ErrorType.WEBRTC,'Destroyed'));
     }
 
     this.customHandlers = {

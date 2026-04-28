@@ -58,14 +58,14 @@ describe("WebRTC 테스트", () => {
         throw new Error("Constructor Error");
       });
 
-      await expect(notInitWebRtc.init()).rejects.toThrow("Constructor Error");
+      await expect(notInitWebRtc.init()).rejects.toThrow("[WebRtc] WebRtc Initialization Failed:");
     });
 
     test("다른 피어와 연결시 에러를 던져야 한다.", async () => {
       const { mockConnection } = setupMockPeerOnSpy();
       mockConnection.send = vi.fn();
 
-      expect(() => notInitWebRtc.connect("test-peer")).toThrow("peer does not exist.");
+      expect(() => notInitWebRtc.connect("test-peer")).toThrow("[WebRtc] Connect Failed:");
     });
 
     test("초기화전 Destory가 호출되었을때 초기화 Promise는 reject되어야 한다.", async () => {
@@ -78,7 +78,7 @@ describe("WebRTC 테스트", () => {
     test("peerjs 불러오기가 실패했을때 에러를 던져야 한다.", async () => {
       vi.spyOn(peerLoader, "load").mockRejectedValue(new Error("Import Error"));
 
-      await expect(notInitWebRtc.init()).rejects.toThrow("Import Error");
+      await expect(notInitWebRtc.init()).rejects.toThrow("[WebRtc] Peerjs Import Failed:");
     });
   });
   
@@ -474,6 +474,6 @@ describe("WebRTC 테스트", () => {
       }
     }
 
-    expect(() => webRtc.send(testSendData)).toThrow("Send Error");
+    expect(() => webRtc.send(testSendData)).toThrow("[WebRtc] Send Failed:");
   });
 });

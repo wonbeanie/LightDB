@@ -1,12 +1,18 @@
-export function errorHandler(error : unknown, message = ""){
-  let err = error instanceof Error ? error : 
-            typeof error === "string" ? new Error(error) : new Error();
+import { ErrorType } from "../types/utils.js";
+import { LDBError } from "./error.js";
 
-  if(message){
-    err = new Error(`${message} ${err.message}`);
+export function errorHandler(type : ErrorType, message : string, error ?: unknown){
+  if(error instanceof LDBError){
+    return error;
   }
 
-  console.error(err.message);
+  let err = error instanceof Error ? error : 
+            typeof error === "string" ? new Error(error) : new Error();
+  
+  if(type && message){
+    err = new LDBError(type, `[${type}] ${message}`, err);
+  }
+
 
   return err;
 }

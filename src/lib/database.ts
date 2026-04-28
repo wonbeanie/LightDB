@@ -3,6 +3,7 @@ import { LightStorage } from "./storage.js";
 import { errorHandler } from "./utils.js";
 import { DB_PATH, type DatabaseConfig, type DatabaseData, type DatabaseRecord, type Listener, type ListenerHandler, type ListenerKey, type ResolveQueueId, type TableKey, type UpdateResolveQueue } from "../types/database.js";
 import type { WebRtcDispatchPayload } from "../types/web-rtc.js";
+import { ErrorType } from "../types/utils.js";
 
 /**
  * 사용자의 데이터를 관리하는 클래스입니다.
@@ -131,7 +132,7 @@ export class LiveDatabase {
       return newDatabase;
     }
     catch(error){
-      throw errorHandler(error, '[Database] Database Update Failed:');
+      throw errorHandler(ErrorType.DATABASE, 'Database Update Failed:', error);
     }
   }
 

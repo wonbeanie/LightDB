@@ -183,7 +183,7 @@ describe("LiveDatabase 테스트", () => {
       }
     });
     vi.advanceTimersByTime(5000);
-    await expect(() => promise).rejects.toThrow("[Database] Database Update Failed: Database Update Timeout");
+    await expect(() => promise).rejects.toThrow("[Database] Database Update Failed:");
     vi.useRealTimers();
   });
 

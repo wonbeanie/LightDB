@@ -1,6 +1,7 @@
 import { errorHandler } from "../lib/utils.js";
 import type { Database, SnapshotPayload } from "../types/database.js";
 import type { ParseDatabase, ParseUpdateTimestamp } from "../types/storage.js";
+import { ErrorType } from "../types/utils.js";
 
 /**
  * 저장소에서 사용하는 데이터 객체 클래스 입니다.
@@ -37,7 +38,7 @@ export class Snapshot{
    */
   public static deserialize(payload : SnapshotPayload) {
     if(!payload || !Array.isArray(payload.database)){
-      throw errorHandler("[Snapshot] Received invalid snapshot payload format.");
+      throw errorHandler(ErrorType.SNAPSHOT, "Received invalid snapshot payload format.", );
     }
     return new Snapshot(new Map(payload.database), payload.updateTimestamp);
   }
@@ -66,7 +67,7 @@ export class Snapshot{
       return new Snapshot(database, parsed.updateTimestamp as ParseUpdateTimestamp);
     }
     catch(err){
-      throw errorHandler(err, '[Snapshot] Failed to convert string to object:');
+      throw errorHandler(ErrorType.SNAPSHOT, 'Failed to convert string to object:', err);
     }
   }
 }

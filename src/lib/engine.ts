@@ -7,6 +7,7 @@ import { WebRTC } from "./web-rtc.js";
 import { LightStorage } from "./storage.js";
 import { errorHandler, formatNow } from "./utils.js";
 import type { LightDB } from "../index.js";
+import { ErrorType } from "../types/utils.js";
 
 /**
  * LightDB의 핵심 엔진 클래스입니다.
@@ -84,7 +85,7 @@ export class LightDBEngine {
       return peerId;
     }
     catch(err){
-      throw errorHandler(err, '[LightDB] Create Room Failed:');
+      throw errorHandler(ErrorType.LIGHTDB, 'Create Room Failed:', err);
     }
   }
 
@@ -103,6 +104,7 @@ export class LightDBEngine {
     catch(err){
       throw errorHandler(err, '[LightDB] Join Room Failed:');
     }
+        reject(errorHandler(ErrorType.LIGHTDB, 'Join Room Failed:', err));
   }
 
   /**
