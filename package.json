@@ -3,7 +3,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "A serverless, real-time P2P database based on WebRTC and PeerJS",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
