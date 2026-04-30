@@ -185,7 +185,7 @@ describe("LightStorage 테스트", () => {
     lightStorage.set(testKey, testData);
     const snapshot = lightStorage.getSnapshot();
 
-    expect(snapshot).toStrictEqual(new Snapshot(new Map([[testKey, testData]]), 0));
+    expect(snapshot).toStrictEqual(new Snapshot(new Map([[testKey, testData]]), 1000));
   });
 
   test("저장소에 데이터를 저장도중 에러가 발생하면 에러를 던져야 한다.", () => {

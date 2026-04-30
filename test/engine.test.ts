@@ -55,7 +55,7 @@ describe("engine 테스트", () => {
   test("방 입장시 WebRtc를 초기화하고 룸에 연결을 요청해야한다.", async () => {
     const mockPeerId = "test-peer-id";
     const initSpy = vi.spyOn(engine.rtc, "init");
-    const connectSpy = vi.spyOn(engine.rtc, "connect");
+    const connectSpy = vi.spyOn(engine.rtc, "connect").mockResolvedValue(true);
     const updateSpy = vi.fn();
     engine.onUpdateComplete = updateSpy;
 

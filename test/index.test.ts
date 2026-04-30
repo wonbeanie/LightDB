@@ -63,7 +63,9 @@ describe("Entry 테스트", () => {
     test("createRoom 호출 시 storageKey가 있으면 엔진의 onSetStorageKey 먼저 호출해야 한다.", async () => {
       const keySpy = vi.spyOn(mockEngine, "onSetStorageKey");
 
-      await mockEngineLightDB.createRoom("test-peer-id");
+      await mockEngineLightDB.createRoom({
+        storageKey : "test-peer-id"
+      });
 
       expect(keySpy).toHaveBeenCalledWith("test-peer-id");
       expect(mockEngine.createRoom).toHaveBeenCalled();
@@ -144,10 +146,13 @@ describe("Entry 테스트", () => {
     });
 
     test("joinRoom 요청시 엔진으로 올바르게 위임되어야 한다.", async () => {
-      const joinRoomSpy = vi.spyOn(OriginEngine.prototype, "joinRoom").mockResolvedValue();
+      const joinRoomSpy = vi.spyOn(OriginEngine.prototype, "joinRoom").mockResolvedValue(true);
     
-      await lightDB.joinRoom("test-peer-id");
-      expect(joinRoomSpy).toHaveBeenCalledWith("test-peer-id");
+      await lightDB.joinRoom("test-peer-id", {
+        resetStorage : false
+      });
+      
+      expect(joinRoomSpy).toHaveBeenCalledWith("test-peer-id", false);
     });
   })
 });
