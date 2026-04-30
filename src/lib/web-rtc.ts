@@ -244,7 +244,6 @@ export class WebRTC {
           this.handleDisconnect(conn.peer, ()=>{
             this.customHandlers.error(err);
           });
-          reject(errorHandler(ErrorType.WEBRTC, "Connection Timeout", err));
         });
       }
 

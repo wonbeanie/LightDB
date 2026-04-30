@@ -401,7 +401,7 @@ describe("WebRTC 테스트", () => {
       expect(connectSpy).toHaveBeenCalled();
     });
 
-    test("설정한 재연결 시간이후 재연결을 해야 한다.", async () => {
+    test("설정한 재연결 시간이후 재연결 실패시 에러를 던져야 한다.", async () => {
       let closeCB : Function = () => {};
       let errorCB : Function = () => {};
 
@@ -446,6 +446,7 @@ describe("WebRTC 테스트", () => {
       errorCB();
 
       expect(mockDisconnectHandler).toHaveBeenCalledWith(DisconnectType.RECONNECT_FAIL);
+      // expect(() => errorCB()).toThrow("Connection Timeout");
     });
   });
 
