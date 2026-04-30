@@ -1,5 +1,6 @@
 import { LightDBEngine } from "./lib/engine.js";
 import { DB_PATH, type DatabaseData } from "./types/database.js";
+import type { CreateRoomConfig, JoinRoomConfig } from "./types/engine.js";
 import type { Config } from "./types/light-db.js";
 import type { StorageEngine } from "./types/storage.js";
 import type { HandlerType, PeerEventMap } from "./types/web-rtc.js";
@@ -57,25 +58,27 @@ export class LightDB {
 
   /**
    * 데이터베이스 방을 생성하고 자신을 방장으로 설정합니다.
-   * @param [storageKey] - 저장될 저장소의 키 (선택사항)
+   * @param [config.storageKey] - 저장될 저장소의 키 (선택사항)
+   * @param [config.resetStorage] - 기존에 저장된 저장소를 초기화하여 시작할지 여부 (기본값 : false)
    * @returns 생성된 방의 Peer 아이디를 담은 Promise
    */
-  async createRoom(storageKey ?: string){
+  async createRoom(config ?: CreateRoomConfig){
     const {engine} = internals.get(this)!;
-    if(storageKey){
-      engine.onSetStorageKey(storageKey);
+    if(config?.storageKey){
+      engine.onSetStorageKey(config.storageKey);
     }
-    return engine.createRoom();
+    return engine.createRoom(config?.resetStorage);
   }
 
   /**
    * 데이터베이스 방을 생성하고 자신을 방장으로 설정합니다.
    * @param targetId - 참여하고자 하는 방 아이디 {@link roomId}
+   * @param [config.clear] - 기존에 저장된 저장소를 초기화하여 시작할지 여부 (기본값 : false)
    * @returns 생성된 방의 Peer 아이디를 담은 Promise
    */
-  async joinRoom(targetId: string){
+  async joinRoom(targetId: string, config ?: JoinRoomConfig){
     const {engine} = internals.get(this)!;
-    return engine.joinRoom(targetId);
+    return engine.joinRoom(targetId, config?.resetStorage);
   }
 
   /**

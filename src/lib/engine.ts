@@ -60,6 +60,7 @@ export class LightDBEngine {
     this.rtc.onUpdateDatabase = (data) => this.db.onValue(data);
     this.rtc.onSyncDatabase = (snapshot) => this.db.syncDatabase(snapshot);
     this.rtc.onGetIsRoomChief = () => this.db.roomChief;
+    this.rtc.onStorageClear = () => this.storage.clear();
   }
 
   /**
@@ -72,12 +73,13 @@ export class LightDBEngine {
   
   /**
    * 데이터베이스 방을 생성하고 자신을 방장으로 설정합니다.
+   * @param resetStorage 기존에 저장된 저장소를 초기화하여 시작할지 여부 (기본값 : false)
    * @returns 생성된 방의 Peer 아이디를 담은 Promise
    * @throws WebRTC 초기화에 실패하거나 방 생성 실패시 발생
    */
-  public async createRoom(){
+  public async createRoom(resetStorage = false){
     try{
-      const peerId = await this.rtc.init();
+      const peerId = await this.rtc.init(resetStorage);
       this.db.roomChief = true;
       this.roomChief = true;
       this.roomId = peerId;
@@ -92,12 +94,13 @@ export class LightDBEngine {
   /**
    * 지정된 방 ID를 가진 기존 방에 참여합니다.
    * @param targetId - 참여하고자 하는 방장의 고유 Peer 아이디
+   * @param resetStorage 기존에 저장된 저장소를 초기화하여 시작할지 여부 (기본값 : false)
    * @throws WebRtc 초기화에 실패, 방장과의 연결 수립 실패시 발생
    */
-  public async joinRoom(targetId: string){
+  public async joinRoom(targetId: string, resetStorage = false){
     return new Promise(async (resolve, reject) => {
       try{
-        await this.rtc.init();
+        await this.rtc.init(resetStorage);
         await this.rtc.connect(targetId);
         this.roomId = targetId;
         this.onUpdateComplete();

@@ -91,6 +91,12 @@ export class WebRTC {
   public onGetIsRoomChief : () => boolean = () => false;
 
   /**
+   * 저장소를 초기화하기 위한 메서드
+   * @remarks 명시적 콜백을 위한 메서드
+   */
+  public onStorageClear : () => void = () => {};
+
+  /**
    * 새로운 WebRtc 인스턴스를 생성
    * @param [config] - 외부 커스텀 {@link WebRtcConfig} 객체 (선택 사항)
    */
@@ -102,10 +108,11 @@ export class WebRTC {
   /**
    * peer 객체의 초기 세팅을 위한 메서드
    * @remarks PeerJS의 인스턴스 생성 및 주요 핵심 이벤트를 연결합니다.
+   * @param resetStorage 기존에 저장된 저장소를 초기화하여 시작할지 여부 (기본값 : false)
    * @returns 초기화 상태 확인을 위한 {@link initPromise}
    * @throws SSR/Node.js 환경과 {@link RTCPeerConnection}이 없을때 발생합니다.
    */
-  public async init(){
+  public async init(resetStorage = false){
     if(typeof window === 'undefined' && !globalThis.RTCPeerConnection){
       throw new Error(
         "[WebRTC] SSR/Node.js environment detected. " +
@@ -116,6 +123,10 @@ export class WebRTC {
     if(this.initPromise) return this.initPromise.promise;
     if(this.peer) return Promise.resolve(this.peerId);
     
+    if(resetStorage){
+      this.onStorageClear();
+    }
+
     const { promise, resolve, reject } = Promise.withResolvers<PeerID>();
 
     this.initPromise = {
