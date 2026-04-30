@@ -202,8 +202,8 @@ export class WebRTC {
         this.customHandlers.connection(conn.peer);
         if(this.onGetIsRoomChief()){
           this.syncDatabase(conn.peer);
+          resolve(true);
         }
-        resolve(true);
       });
 
       if(conn.listenerCount('data') === 0){
@@ -211,6 +211,7 @@ export class WebRTC {
           const {data, type} = response as PeerData<SnapshotPayload | WebRtcDispatchPayload>;
           if(type === PeerDataType.SYNC){
             this.onSyncDatabase(Snapshot.deserialize(data as SnapshotPayload));
+            resolve(true);
           }
           else {
             this.onUpdateDatabase(data as WebRtcDispatchPayload);
