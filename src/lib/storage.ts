@@ -80,6 +80,7 @@ export class LightStorage {
   public clear(){
     this.database.clear();
     this.storage.removeItem(this.storageKey)
+    this.updateTimestamp = 0;
   }
 
   /**
@@ -87,11 +88,13 @@ export class LightStorage {
    */
   public destroy(){
     this.database.clear();
-    this.storage.removeItem(this.storageKey)
+    this.storage.removeItem(this.storageKey);
+    this.updateTimestamp = 0;
   }
 
   public set(table : string, data : DatabaseData){
     this.database.set(table, data);
+    this.updateTimestamp = Date.now();
     this.setStorage();
   }
 
