@@ -68,7 +68,10 @@ lightDB.on('users', (data) => {
 });
 
 // 2. 방 생성 (Host 역할)
-const roomId = await lightDB.createRoom();
+const roomId = await lightDB.createRoom({
+  storageKey: 'my-app-db', // (선택) 저장소에서 사용할 키
+  resetStorage: true       // (선택) 기존 로컬 데이터를 삭제하고 새로 시작
+});
 console.log(`Room ID: ${roomId}`);
 
 // 3. 데이터 업데이트
@@ -83,7 +86,9 @@ await lightDB.update('users', {
 import lightDB from '@wonbeanie/lightdb';
 
 // 방장이 공유한 ID로 접속
-await lightDB.joinRoom('room-id');
+await lightDB.joinRoom('room-id', {
+  resetStorage: false // (선택) 기존 로컬 데이터를 유지하며 참여 (기본값)
+});
 
 // 데이터 구독
 lightDB.on('users', (data) => {
@@ -97,8 +102,8 @@ lightDB.on('users', (data) => {
 
 | 메서드                       | 설명                         |
 | :------------------------ | :------------------------- |
-| `createRoom(storageKey?)` | 새로운 방을 생성하고 Host가 됩니다. (LocalStorage에 저장될 키를 지정할 수 있습니다)     |
-| `joinRoom(targetId)`      | 기존 방에 참여합니다.               |
+| `createRoom(config?)` | 새로운 방을 생성하고 Host가 됩니다.<br>• storageKey : 저장소에서 사용할 키<br>• resetStorage : 기존의 저장소를 초기화하여 시작할지 여부를 설정할 수 있습니다.     |
+| `joinRoom(targetId, config?)`      | 기존 방에 참여합니다.<br>• resetStorage : 기존의 저장소를 초기화하여 시작할지 여부를 설정할 수 있습니다.        |
 | `update(table, data)`     | 데이터를 업데이트하고 모든 피어에 동기화합니다. |
 | `remove(table)`           | 특정 테이블 데이터를 삭제합니다.         |
 | `clear()`                 | 전체 데이터를 초기화합니다.            |
