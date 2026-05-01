@@ -104,7 +104,7 @@ lightDB.on('users', (data) => {
 | :------------------------ | :------------------------- |
 | `createRoom(config?)` | 새로운 방을 생성하고 Host가 됩니다.<br>• storageKey : 저장소에서 사용할 키<br>• resetStorage : 기존의 저장소를 초기화하여 시작할지 여부를 설정할 수 있습니다.     |
 | `joinRoom(targetId, config?)`      | 기존 방에 참여합니다.<br>• resetStorage : 기존의 저장소를 초기화하여 시작할지 여부를 설정할 수 있습니다.        |
-| `update(table, data)`     | 데이터를 업데이트하고 모든 피어에 동기화합니다. |
+| `update(table, data)`     | 데이터를 업데이트하고 모든 피어에 동기화합니다.<br>• 특정 키의 값을 `null`로 설정하면 해당 데이터를 삭제할 수 있습니다. |
 | `remove(table)`           | 특정 테이블 데이터를 삭제합니다.         |
 | `clear()`                 | 전체 데이터를 초기화합니다.            |
 | `on(table, handler)`      | 데이터 변경 구독                  |

@@ -102,6 +102,7 @@ export class LightDB {
 
   /**
    * 데이터베이스의 특정 테이블 데이터를 업데이트하는 메서드
+   * @remarks 특정 키의 값을 'null'로 설정하면 해당 데이터가 데이터베이스에서 삭제됩니다.
    * @param table - 업데이트할 테이블 키 (기본값: {@link DB_PATH.ROOT})
    * @param data - 저장할 {@link DatabaseData} 객체
    */

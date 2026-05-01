@@ -161,6 +161,7 @@ export class LiveDatabase {
 
   /**
    * 실질적인 데이터베이스를 업데이트하는 메서드
+   * @remarks 최종 데이터베이스의 `null` 값은 해당 키를 물리적으로 제거하는 '삭제' 신호로 처리됩니다.
    * @param payload - 데이터 업데이트에 필요한 {@link WebRtcDispatchPayload} 객체
    * @param [send] - 업데이트 완료 후 방장에게 데이터를 보낼 것인지에 대한 변수 (기본값: true)
    */
