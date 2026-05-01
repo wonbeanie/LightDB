@@ -1,7 +1,7 @@
 import type { Snapshot } from "../dto/snapshot.js";
 import { LightStorage } from "./storage.js";
 import { errorHandler, removeNull } from "./utils.js";
-import { DB_PATH, type DatabaseConfig, type DatabaseData, type DatabaseRecord, type Listener, type ListenerHandler, type ListenerKey, type ResolveQueueId, type TableKey, type UpdateResolveQueue } from "../types/database.js";
+import { DB_PATH, type DatabaseConfig, type DatabaseData, type DatabaseRecord, type PendingEvents, type Listener, type ListenerHandler, type ListenerKey, type ResolveQueueId, type TableKey, type UpdateResolveQueue } from "../types/database.js";
 import type { WebRtcDispatchPayload } from "../types/web-rtc.js";
 import { ErrorType } from "../types/utils.js";
 
@@ -38,6 +38,21 @@ export class LiveDatabase {
   private lastResolveQueueId = 1;
 
   /**
+   * {@link flushQueue}가 실행되기 전까지 이벤트를 쌓아두는 버퍼
+   */
+  private pendingEvents : PendingEvents[] = [];
+
+  /**
+   * flush 실행 여부를 확인하는 변수
+   */
+  private isFlushing = false;
+
+  /**
+   * mickrotask에 예약된 상태를 확인하는 변수
+   */
+  private isFlushScheduled = false;
+
+  /**
    * WebRtc에 방장에게 변경사항을 요청하는 메서드
    * @remark 명시적 콜백을 위한 메서드
    */
@@ -48,6 +63,12 @@ export class LiveDatabase {
    * @remark 명시적 콜백을 위한 메서드
    */
   public onUpdateComplete : () => void = () => {};
+
+  /**
+   * on 메서드에서 에러 발생시 호출되는 메서드
+   * @remarks 외부에서 설정을 통해 할당됩니다.
+   */
+  public onError : (table : string, error : unknown) => void = () => {};
 
   /**
    * 새로운 데이터베이스 인스턴스를 생성
@@ -212,20 +233,50 @@ export class LiveDatabase {
 
   /**
    * 구독한 리스너에 전달하는 메서드
+   * @remarks queueMicrotask를 이용해 처리합니다.
    * @param table 업데이트한 Table Key
    * @param data 최신 {@link DatabaseData} 객체
    */
   private emitCallback(table : TableKey, data : DatabaseData){
-    if(!this.listener.has(table)){
+    this.pendingEvents.push({
+      table,
+      data
+    });
+
+    if(this.isFlushScheduled || this.isFlushing){
       return;
     }
-    const handler = this.listener.get(table) || function(){};
-    
-    try{
-      handler(data);
+
+    this.isFlushScheduled = true;
+    queueMicrotask(() => this.flushQueue());
+  }
+
+  /**
+   * 누적된 {@link pendingEvents}를 일괄 처리하는 메서드
+   */
+  private flushQueue(){
+    this.isFlushScheduled = false;
+    this.isFlushing = true;
+
+    try {
+      let i = 0;
+      while (i < this.pendingEvents.length){
+        const {table, data} = this.pendingEvents[i]!;
+        const handler = this.listener.get(table);
+
+        try {
+          handler?.(data);
+        }
+        catch(err){
+          this.onError?.(table, err);
+        }
+
+        i++;
+      }
     }
-    catch(err){
-      throw errorHandler(ErrorType.LISTENER, 'Lisatener Error:', err);
+    finally {
+      this.pendingEvents.length = 0;
+      this.isFlushing = false;
     }
   }
 

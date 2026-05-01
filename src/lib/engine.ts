@@ -44,7 +44,7 @@ export class LightDBEngine {
    * 새로운 LightDB 인스턴스를 생성
    * @see {@link LightDB}
    */
-  constructor(config: Config = {database: {}, webRtc: {}}, storage ?: StorageEngine){
+  constructor(config : Config = {}, storage ?: StorageEngine){
     this.storage = new LightStorage(storage);
     this.db = new LiveDatabase(this.storage, config.database);
     this.rtc = new WebRTC(config.webRtc);
@@ -55,6 +55,7 @@ export class LightDBEngine {
       this.roomChief = this.db.roomChief;
       this.onUpdateComplete();
     };
+    this.db.onError = config.onError ?? (() => {});
     
     this.rtc.onGetSnapshot = () => this.db.getSnapshot();
     this.rtc.onUpdateDatabase = (data) => this.db.onValue(data);

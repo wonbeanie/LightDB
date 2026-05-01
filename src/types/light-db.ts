@@ -3,5 +3,6 @@ import type { WebRtcConfig } from "./web-rtc.js";
 
 export interface Config {
   database ?: DatabaseConfig;
-  webRtc ?: WebRtcConfig
+  webRtc ?: WebRtcConfig;
+  onError ?: (table : string, error : unknown) => void;
 }

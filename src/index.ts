@@ -1,5 +1,5 @@
 import { LightDBEngine } from "./lib/engine.js";
-import { DB_PATH, type DatabaseData } from "./types/database.js";
+import { DB_PATH, type DatabaseData, type TableKey } from "./types/database.js";
 import type { CreateRoomConfig, JoinRoomConfig } from "./types/engine.js";
 import type { Config } from "./types/light-db.js";
 import type { StorageEngine } from "./types/storage.js";

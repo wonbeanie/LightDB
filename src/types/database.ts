@@ -31,3 +31,8 @@ export interface SnapshotPayload {
 export const enum DB_PATH {
   ROOT = "/"
 }
+
+export interface PendingEvents {
+  table : TableKey,
+  data : DatabaseData
+}
