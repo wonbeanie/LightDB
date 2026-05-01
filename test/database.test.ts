@@ -33,7 +33,7 @@ describe("LiveDatabase 테스트", () => {
       expect(onUpdateCompleteSpy).toHaveBeenCalled();
   });
 
-  test("데이터가 변경시 구독된 리스너에게만 전달해야 한다.", () => {
+  test("데이터가 변경시 구독된 리스너에게만 전달해야 한다.", async () => {
     const mockHandler = vi.fn();
     const mockData = {
       id : 1,
@@ -46,7 +46,10 @@ describe("LiveDatabase 테스트", () => {
       table : "/users",
       data : mockData
     });
-    expect(mockHandler).toHaveBeenCalledWith(mockData);
+    
+    await vi.waitFor(() => {
+      expect(mockHandler).toHaveBeenCalledWith(mockData);
+    });
 
     db.removeDBListener("/users");
     db.onValue({
@@ -57,7 +60,7 @@ describe("LiveDatabase 테스트", () => {
     expect(mockHandler).toHaveBeenCalledTimes(1);
   });
 
-  test("데이터 삭제시 리스너와 저장소에서 삭제되어야 한다", () => {
+  test("데이터 삭제시 리스너와 저장소에서 삭제되어야 한다", async () => {
     const mockHandler = vi.fn();
     const mockData = {
       id : 1,
@@ -71,7 +74,10 @@ describe("LiveDatabase 테스트", () => {
       table : "/users",
       data : mockData
     });
-    expect(mockHandler).toHaveBeenCalledWith(mockData);
+
+    await vi.waitFor(() => {
+      expect(mockHandler).toHaveBeenCalledWith(mockData);
+    });
 
     vi.spyOn(db, "updateDB").mockImplementation((table : TableKey = DB_PATH.ROOT, data : DatabaseData, clear = false)=>{
       return new Promise((resolve, reject) => {
@@ -193,29 +199,104 @@ describe("LiveDatabase 테스트", () => {
   });
 
   test("구독된 리스너 실행 도중 에러가 발생하면 에러를 던져야 한다.", async () => {
-    db.addDBListener("/users", () => {
-      throw new Error("Test Error");
+    const errorDB = new LiveDatabase(mockStorage);
+
+    const errorFn = vi.fn();
+    errorDB.onError = errorFn;
+    
+    errorDB.addDBListener("/users", () => {
+      throw new Error("/users Test Error");
+    });
+    
+    errorDB.onValue({
+      id : "test",
+      table : "/users",
+      data : {}
+    })
+
+    await vi.waitFor(() => {
+      expect(errorFn).toHaveBeenCalled();
+    });
+  });
+
+  test("update할 데이터에 null이 있다면 그 속성은 삭제되어야 한다.", async () => {
+
+    const storageSetSpy = vi.spyOn(mockStorage, "set");
+
+    const mockData = {
+      id : 1,
+      name : "wonbeanie",
+      age : 22
+    };
+
+    db.onValue({
+      id : "test",
+      table : "/users",
+      data : {
+        ...mockData,
+        age : null
+      }
     });
 
-    expect(() => {
-      db.onValue({
+    expect(storageSetSpy).toHaveBeenCalledWith("/users", {
+      id : 1,
+      name : "wonbeanie"
+    });
+  });
+
+  test("업데이트 도중 업데이트가 발생했을 때 순서가 역전되지 않아야 한다.", async () => {
+    const onSendSpy = vi.spyOn(db, "onSend");
+
+    db.roomChief = true;
+    let flag = false;
+    db.addDBListener("/users", async () => {
+      if(!flag){
+        db.onValue({
+          id : "test",
+          table : "/users",
+          data : {
+            id : 1,
+            name : "wonbeanie",
+            age : 22
+          }
+        });
+      }
+
+      flag = true;
+    });
+
+    db.onValue({
+      id : "test",
+      table : "/users",
+      data : {
+        id : 2,
+        name : "mons",
+        age : 550
+      }
+    });
+
+    await vi.waitFor(() => {
+      expect(onSendSpy).toHaveBeenCalledTimes(2);
+      expect(onSendSpy).toHaveBeenNthCalledWith(1, {
         id : "test",
         table : "/users",
-        data : {}
-      })
-    }).toThrow("[Listener] Lisatener Error:");
-
-    db.addDBListener("/users", () => {
-      throw new Error("Test Error");
-    });
-
-    expect(() => {
-      db.onValue({
+        data : {
+          id : 2,
+          name : "mons",
+          age : 550
+        },
+        clear : false
+      });
+      expect(onSendSpy).toHaveBeenNthCalledWith(2, {
         id : "test",
-        table : DB_PATH.ROOT,
-        data : {},
-        clear: true
-      })
-    }).toThrow("[Listener] Lisatener Error:");
+        table : "/users",
+        data : {
+          id : 1,
+          name : "wonbeanie",
+          age : 22
+        },
+        clear : false
+      });
+    });
   })
 })
