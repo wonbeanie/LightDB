@@ -15,7 +15,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsup src/index.ts --format cjs,esm && tsc --emitDeclarationOnly --declaration --outDir dist",
     "test": "vitest",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "publish": "npm run build && npm publish"
   },
   "type": "module",
   "keywords": [

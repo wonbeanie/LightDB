@@ -29,3 +29,19 @@ export function formatNow(): string {
 
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
+
+export function removeNull(obj: Record<string, any>): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const key of Object.keys(obj)) {
+    const value = obj[key];
+    if (value === null) continue;
+
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      result[key] = removeNull(value);
+      continue;
+    }
+
+    result[key] = value;
+  }
+  return result;
+}

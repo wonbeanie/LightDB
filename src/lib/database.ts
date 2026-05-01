@@ -1,6 +1,6 @@
 import type { Snapshot } from "../dto/snapshot.js";
 import { LightStorage } from "./storage.js";
-import { errorHandler } from "./utils.js";
+import { errorHandler, removeNull } from "./utils.js";
 import { DB_PATH, type DatabaseConfig, type DatabaseData, type DatabaseRecord, type Listener, type ListenerHandler, type ListenerKey, type ResolveQueueId, type TableKey, type UpdateResolveQueue } from "../types/database.js";
 import type { WebRtcDispatchPayload } from "../types/web-rtc.js";
 import { ErrorType } from "../types/utils.js";
@@ -177,10 +177,11 @@ export class LiveDatabase {
     }
     else {
       let prevDatabase = this.storage.get(table) || {};
-      const newDatabase = {
+      const newDatabase = removeNull({
         ...prevDatabase,
         ...data
-      };
+      });
+
       this.storage.set(table, newDatabase);
       this.emitCallback(table, newDatabase);
     }
