@@ -3,7 +3,7 @@ import { errorHandler } from "./utils.js";
 import { Snapshot } from "../dto/snapshot.js";
 import type { SnapshotPayload } from "../types/database.js";
 import { createPeerData } from "../dto/peer-data.js";
-import { DisconnectType, HandlerType, PeerDataType, type Connections, type InitPromise, type PeerData, type PeerEventMap, type PeerID, type WebRtcConfig, type WebRtcDispatchPayload } from "../types/web-rtc.js";
+import { DisconnectType, HandlerType, PeerDataType, type Connections, type InitPromise, type PeerEventMap, type PeerID, type ResponseData, type WebRtcConfig, type WebRtcDispatchPayload } from "../types/web-rtc.js";
 import { peerLoader } from "./peerLoader.js"
 import { ErrorType } from "../types/utils.js";
 
@@ -219,15 +219,15 @@ export class WebRTC {
 
       if(conn.listenerCount('data') === 0){
         conn.on('data', (response) => {
-          const {data, type} = response as PeerData<SnapshotPayload | WebRtcDispatchPayload>;
-          if(type === PeerDataType.SYNC){
-            this.onSyncDatabase(Snapshot.deserialize(data as SnapshotPayload));
+          const peerData = response as ResponseData;
+          if(peerData.type === PeerDataType.SYNC){
+            this.onSyncDatabase(Snapshot.deserialize(peerData.data));
             resolve(true);
           }
           else {
-            this.onUpdateDatabase(data as WebRtcDispatchPayload);
+            this.onUpdateDatabase(peerData.data);
           }
-          this.customHandlers.message(response);
+          this.customHandlers.message(peerData);
         });
       }
   
@@ -327,7 +327,7 @@ export class WebRTC {
         }
       }
 
-      this.customHandlers.send();
+      this.customHandlers.send(sendData);
     }
     catch(error){
       throw errorHandler(ErrorType.WEBRTC, `Send Failed:`, error);
