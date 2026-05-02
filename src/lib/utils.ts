@@ -1,3 +1,4 @@
+import type { DatabaseData } from "../types/database.js";
 import { ErrorType } from "../types/utils.js";
 import { LDBError } from "./error.js";
 
@@ -30,18 +31,31 @@ export function formatNow(): string {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-export function removeNull(obj: Record<string, any>): Record<string, any> {
-  const result: Record<string, any> = {};
-  for (const key of Object.keys(obj)) {
-    const value = obj[key];
-    if (value === null) continue;
+export function deepMerge(target : DatabaseData, source : DatabaseData) {
+  const result = structuredClone(target);
+  return mergeInto(result, source);
+}
 
-    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-      result[key] = removeNull(value);
-      continue;
+function mergeInto(target: DatabaseData, source: DatabaseData){
+  for(const key in source){
+    if (!Object.hasOwn(source, key)) continue;
+
+    const sourceVal = source[key];
+    const targetVal = target[key];
+
+    if(sourceVal === null){
+      delete target[key];
     }
-
-    result[key] = value;
+    else if(sourceVal && typeof sourceVal === 'object' && !Array.isArray(sourceVal)) {
+      target[key] = mergeInto(
+        (targetVal && typeof targetVal === 'object' ? targetVal : {}) as DatabaseData,
+        sourceVal as DatabaseData
+      );
+    }
+    else {
+      target[key] = sourceVal;
+    }
   }
-  return result;
+
+  return target;
 }

@@ -1,4 +1,4 @@
-import { errorHandler, formatNow } from "../src/lib/utils.js";
+import { deepMerge, errorHandler, formatNow } from "../src/lib/utils.js";
 import { ErrorType } from "../src/types/utils.js";
 
 describe("유틸리티 테스트", () => {
@@ -41,6 +41,35 @@ describe("유틸리티 테스트", () => {
       expect(result).toBeInstanceOf(Error);
       expect(result.message).toContain(message);
       expect(result.cause).toBe(error);
+    });
+  });
+
+  describe("객체 병합 테스트", () => {
+    test("두 객체가 병합되어 반환되어야 한다.", () => {
+      const obj1 = { a: 1, b: 2 };
+      const obj2 = { b: 3, c: 4 };
+
+      const merged = deepMerge(obj1, obj2);
+
+      expect(merged).toEqual({ a: 1, b: 3, c: 4 });
+    });
+    
+    test("객체가 다차원일때 병합되어 반환되어야 한다.", () => {
+      const obj1 = { a: 1, b: { c: 2 } };
+      const obj2 = { b: { d: 3 }, e: 4 };
+
+      const merged = deepMerge(obj1, obj2);
+
+      expect(merged).toEqual({ a: 1, b: { c: 2, d: 3 }, e: 4 });
+    });
+
+    test("객체에 null이 존재할때 그 속성은 삭제되고 반환되어야 한다.", () => {
+      const obj1 = { a: 1, b: { c: 2, d : 6 } };
+      const obj2 = { b: { d: null }, e: 4 };
+
+      const merged = deepMerge(obj1, obj2);
+
+      expect(merged).toEqual({ a: 1, b: { c: 2 }, e: 4 });
     });
   });
 })
