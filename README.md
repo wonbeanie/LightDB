@@ -96,6 +96,45 @@ lightDB.on('users', (data) => {
 });
 ```
 
+## ⚙️ 고급 설정
+
+LightDB는 기본 사용만으로도 충분히 동작하지만,  
+더 세밀한 제어가 필요한 경우 고급 설정을 통해 동작을 커스터마이징할 수 있습니다.
+
+### 고급 설정
+
+인스턴스 생성 시 WebRTC 재연결 전략이나 업데이트 타임아웃 등을 직접 설정할 수 있습니다.
+
+```javascript
+import { LightDB } from '@wonbeanie/lightdb';
+
+const db = new LightDB({
+  database: {
+    updateTimeout: 5000 // 업데이트 대기 시간 (ms)
+  },
+  webRtc: {
+    maxReconnectCount: 10, // 최대 재연결 시도 횟수
+    reconnectTimeout: 2000 // 재연결 간격 (ms)
+  },
+  onError: (table, err) => { // on메서드로 구독한 handler에서 에러 발생시 호출되는 메서드
+    console.error(`${table} 에러:`, err);
+  }
+}, customStorage); // LocalStorage 대신 사용할 커스텀 저장소 주입 가능
+```
+
+### 💾 커스텀 저장소
+
+기본적으로 LightDB는 `LocalStorage`를 사용하지만,
+동일한 인터페이스를 구현하면 원하는 저장소로 교체할 수 있습니다.
+
+```javascript
+const customStorage = {
+  getItem: (key) => { /* ... */ },
+  setItem: (key, value) => { /* ... */ },
+  removeItem: (key) => { /* ... */ }
+};
+```
+
 ## 🛠 API
 
 ### Methods
@@ -112,6 +151,19 @@ lightDB.on('users', (data) => {
 | `onPeer(event, handler)`  | WebRTC 이벤트 구독              |
 | `offPeer(event)`          | WebRTC 이벤트 구독 해제           |
 | `destroy()`               | 모든 연결 종료 및 인스턴스 제거         |
+
+### 📡 Peer 이벤트 (`onPeer`)
+
+WebRTC 연결 상태 및 통신 이벤트를 구독할 수 있습니다.
+
+| 이벤트          | 인자         | 설명                                         |
+| :----------- | :--------- | :----------------------------------------- |
+| `connection` | `targetId` | 새로운 피어가 연결되었을 때 호출됩니다.                   |
+| `disconnect` | `state`    | 연결 종료 상태를 전달됩니다. (SUCCESS, RETRY, FAILED 등 상태 전달) |
+| `close`      | `targetId` | 다른 피어와 연결이 완전히 종료되었을 때 호출됩니다.       |
+| `error`      | `error`    | 통신 중 에러 발생 시 호출됩니다.                    |
+| `message`    | `data`     | 다른 피어로부터 동기화 또는 업데이트 데이터를 받았을 때 호출됩니다.   |
+| `send`       | `data`     | 데이터를 다른 피어에게 성공적으로 전송했을 때 호출됩니다.     |
 
 ### Properties (Read-only)
 
