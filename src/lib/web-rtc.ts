@@ -3,7 +3,7 @@ import { errorHandler } from "./utils.js";
 import { Snapshot } from "../dto/snapshot.js";
 import type { SnapshotPayload } from "../types/database.js";
 import { createPeerData } from "../dto/peer-data.js";
-import { DisconnectType, HandlerType, PeerDataType, type Connections, type InitPromise, type PeerEventMap, type PeerID, type ResponseData, type WebRtcConfig, type WebRtcDispatchPayload } from "../types/web-rtc.js";
+import { DisconnectType, HandlerType, PeerDataType, SignalReconnectType, type Connections, type InitPromise, type PeerEventMap, type PeerID, type ResponseData, type WebRtcConfig, type WebRtcDispatchPayload } from "../types/web-rtc.js";
 import { peerLoader } from "./peerLoader.js"
 import { ErrorType } from "../types/utils.js";
 
@@ -47,6 +47,10 @@ export class WebRTC {
    */
   private reconnectTimeout = 5000;
 
+  private signalReconnectCount = 0;
+
+  private signalReconnectTimeoutId : number | null = null;
+
   /**
    * PeerJS의 주요 이벤트 발생 시 실행될 외부 커스텀 핸들러 모음
    */
@@ -57,6 +61,7 @@ export class WebRTC {
     send : () => {},
     error : () => {},
     disconnect : () => {},
+    signalReconnect : () => {},
   };
 
   /**
@@ -159,8 +164,10 @@ export class WebRTC {
 
       peer.on('open', (id) => {
         if(this.signalReconnected){
+          this.peerId = id;
           this.signalReconnected = false;
-          this.customHandlers.disconnect(DisconnectType.SIGNAL_SUCCESS);
+          this.signalReconnectCount = 0;
+          this.customHandlers.signalReconnect(SignalReconnectType.SUCCESS);
           return;
         }
         this.peerId = id;
@@ -173,9 +180,14 @@ export class WebRTC {
       });
   
       peer.on('error', (err) => {
-        reject(errorHandler(ErrorType.WEBRTC, "Peer connection error:", err));
-        this.peer = null;
-        this.initPromise = null;
+        const handledError = errorHandler(ErrorType.WEBRTC, "Peer connection error:", err);
+        if(this.initPromise){
+          reject(handledError);
+          this.resetPeerState();
+          return;
+        }
+
+        this.customHandlers.error(handledError);
       });
 
       peer.on("disconnected", () => {
@@ -184,9 +196,8 @@ export class WebRTC {
           return;
         }
         
-        this.customHandlers.disconnect(DisconnectType.SIGNAL_FAIL);
-        this.signalReconnected = true;
-        peer.disconnect();
+        this.customHandlers.signalReconnect(SignalReconnectType.RETRY);
+        this.scheduleSignalReconnect();
       });
 
     }
@@ -194,6 +205,42 @@ export class WebRTC {
       this.resetPeerState();
       reject(errorHandler(ErrorType.WEBRTC, `WebRtc Initialization Failed:`, error));
     }
+  }
+
+  private scheduleSignalReconnect(){
+    if(!this.peer || this.peer.destroyed){
+      this.customHandlers.signalReconnect(SignalReconnectType.FAIL);
+      return;
+    }
+
+    if(this.signalReconnectTimeoutId !== null){
+      return;
+    }
+
+    if(this.signalReconnectCount >= this.maxReconnectCount){
+      this.signalReconnected = false;
+      this.signalReconnectCount = 0;
+      this.customHandlers.signalReconnect(SignalReconnectType.FAIL);
+      return;
+    }
+
+    this.signalReconnected = true;
+    this.signalReconnectTimeoutId = setTimeout(() => {
+      this.signalReconnectTimeoutId = null;
+      if(!this.peer || this.peer.destroyed){
+        this.customHandlers.signalReconnect(SignalReconnectType.FAIL);
+        return;
+      }
+
+      try{
+        this.signalReconnectCount += 1;
+        this.peer.reconnect();
+      }
+      catch(error){
+        this.customHandlers.error(errorHandler(ErrorType.WEBRTC, "Signal Reconnect Failed:", error));
+        this.scheduleSignalReconnect();
+      }
+    }, this.reconnectTimeout);
   }
 
   /**
@@ -357,6 +404,11 @@ export class WebRTC {
    * @remark 연결된 모든 피어들을 Close 처리됩니다.
    */
   public destroy(){
+    if(this.signalReconnectTimeoutId !== null){
+      clearTimeout(this.signalReconnectTimeoutId);
+      this.signalReconnectTimeoutId = null;
+    }
+
     Object.values(this.connections).forEach(conn => conn.close());
     this.connections = {};
 
@@ -375,6 +427,7 @@ export class WebRTC {
       send: () => {},
       error: () => {},
       disconnect: () => {},
+      signalReconnect: () => {},
     };
     
     this.resetPeerState();
@@ -384,6 +437,12 @@ export class WebRTC {
     this.initPromise = null;
     this.peer = null;
     this.peerId = null;
+    this.signalReconnected = false;
+    this.signalReconnectCount = 0;
+    if(this.signalReconnectTimeoutId !== null){
+      clearTimeout(this.signalReconnectTimeoutId);
+      this.signalReconnectTimeoutId = null;
+    }
   }
 
   get connectionsLength(){

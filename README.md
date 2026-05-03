@@ -160,6 +160,7 @@ WebRTC 연결 상태 및 통신 이벤트를 구독할 수 있습니다.
 | :----------- | :--------- | :----------------------------------------- |
 | `connection` | `targetId` | 새로운 피어가 연결되었을 때 호출됩니다.                   |
 | `disconnect` | `state`    | 연결 종료 상태를 전달됩니다. (SUCCESS, RETRY, FAILED 등 상태 전달) |
+| `signalReconnect` | `state` | 시그널링 서버 재연결 상태를 전달합니다. (RETRY, SUCCESS, FAIL) |
 | `close`      | `targetId` | 다른 피어와 연결이 완전히 종료되었을 때 호출됩니다.       |
 | `error`      | `error`    | 통신 중 에러 발생 시 호출됩니다.                    |
 | `message`    | `data`     | 다른 피어로부터 동기화 또는 업데이트 데이터를 받았을 때 호출됩니다.   |

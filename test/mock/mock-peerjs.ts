@@ -24,6 +24,10 @@ export class MockPeer {
   disconnect(){
 
   }
+
+  reconnect(){
+
+  }
 }
 
 export class MockConnection {

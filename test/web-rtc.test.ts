@@ -1,6 +1,6 @@
 import type { Mock } from "vitest";
 import { WebRTC } from "../src/lib/web-rtc.js";
-import { DisconnectType, HandlerType, PeerDataType } from "../src/types/web-rtc.js";
+import { DisconnectType, HandlerType, PeerDataType, SignalReconnectType } from "../src/types/web-rtc.js";
 import { getCommunicationData, getInitWebRtc, setupMockConnectionOnSpy, setupMockPeerOnSpy } from "./lib/web-rtc-helper.js";
 import { MockConnection, MockPeer } from "./mock/mock-peerjs.js";
 import type { Snapshot } from "../src/dto/snapshot.js";
@@ -252,6 +252,7 @@ describe("WebRTC 테스트", () => {
     test("끊겼을때 재연결을 요청해야한다.", async () => {
       let openCB : Function = () => {};
       let disconnectCB : Function = () => {};
+      const reconnectTimeout = 3000;
 
       setupMockPeerOnSpy((event, cb) => {
         if(event === "open"){
@@ -266,18 +267,27 @@ describe("WebRTC 테스트", () => {
         }
       });
 
-      const mockPeer = await getInitWebRtc();
+      const mockPeer = await getInitWebRtc({
+        webRtc : new WebRTC({
+          reconnectTimeout
+        })
+      });
 
-      const mockDisconnectHandler = vi.fn();
-      mockPeer.setHandler('disconnect', mockDisconnectHandler);
+      const reconnectSpy = vi.spyOn(MockPeer.prototype, "reconnect");
+      const mockSignalReconnectHandler = vi.fn();
+      mockPeer.setHandler(HandlerType.SIGNAL_RECONNECT, mockSignalReconnectHandler);
 
       disconnectCB()
 
-      expect(mockDisconnectHandler).toHaveBeenCalledWith(DisconnectType.SIGNAL_FAIL);
+      expect(mockSignalReconnectHandler).toHaveBeenCalledWith(SignalReconnectType.RETRY);
+
+      vi.advanceTimersByTime(reconnectTimeout);
+
+      expect(reconnectSpy).toHaveBeenCalled();
 
       openCB();
 
-      expect(mockDisconnectHandler).toHaveBeenCalledWith(DisconnectType.SIGNAL_SUCCESS);
+      expect(mockSignalReconnectHandler).toHaveBeenCalledWith(SignalReconnectType.SUCCESS);
     });
 
     test("올바르게 종료되었을때 disconnect 이벤트에 종료 완료 메세지를 전달해야한다.", async () => {

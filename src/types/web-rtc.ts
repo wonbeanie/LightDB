@@ -7,7 +7,8 @@ export const HandlerType = {
   MESSAGE : "message",
   ERROR : "error",
   SEND : "send",
-  DISCONNECT: "disconnect"
+  DISCONNECT: "disconnect",
+  SIGNAL_RECONNECT: "signalReconnect"
 } as const;
 
 export type HandlerType = typeof HandlerType[keyof typeof HandlerType];
@@ -47,6 +48,12 @@ export interface PeerEventMap {
    * @param state - {@link DisconnectType} 형태의 상태 값
   */
   [HandlerType.DISCONNECT] : DisconnectHandler;
+
+  /**
+   * 시그널링 서버 재연결 상태를 전달합니다.
+   * @param state - {@link SignalReconnectType} 형태의 상태 값
+  */
+  [HandlerType.SIGNAL_RECONNECT] : SignalReconnectHandler;
 }
 export type PeerHandler = PeerEventMap[keyof PeerEventMap];
 
@@ -66,6 +73,7 @@ export type MessageHandler = (data ?: ResponseData) => void;
 export type ErrorHandler = (err ?: Error | unknown) => void;
 export type SendHandler = (data ?: PeerData<WebRtcDispatchPayload>) => void;
 export type DisconnectHandler = (state ?: DisconnectType) => void;
+export type SignalReconnectHandler = (state ?: SignalReconnectType) => void;
 
 export interface WebRtcConfig {
   maxReconnectCount ?: number;
@@ -91,9 +99,13 @@ export type ResponseData =
 export const enum DisconnectType {
   SUCCESS = "SUCCESS",
   RECONNECT_FAIL = "FAILED",
-  RECONNECT_RETRY = "RETRY",
-  SIGNAL_FAIL = "SIGNAL_FAIL",
-  SIGNAL_SUCCESS = "SIGNAL_SUCCESS"
+  RECONNECT_RETRY = "RETRY"
+}
+
+export const enum SignalReconnectType {
+  RETRY = "RETRY",
+  SUCCESS = "SUCCESS",
+  FAIL = "FAIL"
 }
 
 export interface InitPromise {
