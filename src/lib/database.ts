@@ -23,6 +23,12 @@ export class LiveDatabase {
   private updateResolveQueue : UpdateResolveQueue = new Map();
 
   /**
+   * timeout 처리된 update id를 잠시 보관하는 Map 객체
+   * @remarks timeout 이후 늦게 도착한 동일 update 응답이 저장소에 반영되지 않도록 사용합니다.
+   */
+  private expiredUpdateIds : Map<ResolveQueueId, number> = new Map();
+
+  /**
    * 방장 구분을 위한 변수
    */
   public roomChief = false;
@@ -170,6 +176,7 @@ export class LiveDatabase {
       const timeoutId = setTimeout(()=>{
         reject(new Error("Database Update Timeout"));
         this.updateResolveQueue.delete(id);
+        this.markUpdateExpired(id);
       }, this.updateTimeout);
 
       this.updateResolveQueue.set(id, {
@@ -187,6 +194,10 @@ export class LiveDatabase {
    * @param [send] - 업데이트 완료 후 방장에게 데이터를 보낼 것인지에 대한 변수 (기본값: true)
    */
   public onValue({id, table, data, clear = false} : WebRtcDispatchPayload, send = true){
+    if(this.expiredUpdateIds.has(id)){
+      return;
+    }
+
     if(clear){
       if(table === DB_PATH.ROOT){
         this.storage.clear();
@@ -298,13 +309,45 @@ export class LiveDatabase {
   public destroy(){
     this.listener.clear();
     this.storage.destroy();
+    this.clearExpiredUpdates();
 
     if(this.updateResolveQueue.size > 0){
       this.updateResolveQueue.forEach(resolveData => {
+        clearTimeout(resolveData.timeoutId);
         resolveData.reject(errorHandler(ErrorType.DATABASE, "Destroyed"));
       });
       this.updateResolveQueue.clear();
     }
+  }
+
+  /**
+   * timeout 처리된 update id를 만료 목록에 등록하는 메서드
+   * @param id - timeout이 발생한 update 요청 id
+   * @remarks 만료 id는 {@link updateTimeout}의 두 배 시간 동안 보관한 뒤 자동으로 제거합니다.
+   */
+  private markUpdateExpired(id : ResolveQueueId){
+    const previousTimeoutId = this.expiredUpdateIds.get(id);
+    if(previousTimeoutId){
+      clearTimeout(previousTimeoutId);
+    }
+
+    const timeoutId = setTimeout(() => {
+      this.expiredUpdateIds.delete(id);
+    }, this.updateTimeout * 2);
+
+    this.expiredUpdateIds.set(id, timeoutId);
+  }
+
+  /**
+   * 만료 update id와 정리 타이머를 모두 제거하는 메서드
+   * @remarks 인스턴스 제거 시 예약된 타이머가 남지 않도록 사용합니다.
+   */
+  private clearExpiredUpdates(){
+    for(const timeoutId of this.expiredUpdateIds.values()){
+      clearTimeout(timeoutId);
+    }
+
+    this.expiredUpdateIds.clear();
   }
 
   public getSnapshot(){

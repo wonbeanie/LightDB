@@ -193,6 +193,33 @@ describe("LiveDatabase 테스트", () => {
     vi.useRealTimers();
   });
 
+  test("timeout 이후 늦게 도착한 update 응답은 저장소에 반영하지 않아야 한다.", async () => {
+    vi.useFakeTimers();
+    const timeoutDB = new LiveDatabase(mockStorage, {
+      updateTimeout : 100
+    });
+    let sentPayload : WebRtcDispatchPayload | null = null;
+    vi.spyOn(timeoutDB, "onSend").mockImplementation((data : WebRtcDispatchPayload) => {
+      sentPayload = data;
+    });
+
+    const promise = timeoutDB.updateDB("/users", {
+      id : 1,
+      name : "wonbeanie"
+    });
+
+    vi.advanceTimersByTime(100);
+    await expect(promise).rejects.toThrow("[Database] Database Update Failed:");
+
+    if(sentPayload){
+      timeoutDB.onValue(sentPayload);
+    }
+
+    expect(mockStorage.set).not.toHaveBeenCalled();
+    timeoutDB.destroy();
+    vi.useRealTimers();
+  });
+
   test("외부에서 커스텀키를 수정하면 저장소에 전달하여야 한다.", () => {
     db.onSetStorageKey("TEST-KEY");
     expect(mockStorage.onSetStorageKey).toHaveBeenCalled();
