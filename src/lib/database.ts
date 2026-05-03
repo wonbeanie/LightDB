@@ -209,7 +209,6 @@ export class LiveDatabase {
       }
       else {
         this.storage.remove(table);
-        this.listener.delete(table);
       }
     }
     else {
@@ -358,6 +357,10 @@ export class LiveDatabase {
     return this.storage.getSnapshot();
   }
 
+  /**
+   * 특정 테이블 데이터를 삭제합니다.
+   * @remarks 테이블 구독은 유지됩니다. 구독 해제가 필요하면 {@link removeDBListener}를 호출하세요.
+   */
   public async removeTable(table : TableKey){
     return this.updateDB(table, {}, true);
   }

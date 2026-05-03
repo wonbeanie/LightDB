@@ -96,6 +96,17 @@ describe("LiveDatabase 테스트", () => {
     expect(mockHandler).toHaveBeenCalledTimes(1);
     expect(mockStorage.remove).toHaveBeenCalledWith("/users");
     expect(mockStorage.get("/users")).toBeUndefined();
+
+    db.onValue({
+      id : "test-after-remove",
+      table : "/users",
+      data : mockData
+    });
+
+    await vi.waitFor(() => {
+      expect(mockHandler).toHaveBeenCalledTimes(2);
+      expect(mockHandler).toHaveBeenLastCalledWith(mockData);
+    });
   });
 
   test("루트 테이블을 지정하면 전부 초기화 되어야 한다.", () => {

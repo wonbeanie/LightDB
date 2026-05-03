@@ -150,6 +150,7 @@ export class LightDB {
   /**
    * 데이터베이스의 특정 테이블 데이터를 삭제하는 메서드
    * @param table - 삭제할 테이블 키
+   * @remarks 구독은 유지됩니다. 구독 해제가 필요하면 {@link off}를 호출하세요.
    */
   async remove(table: string){
     const {engine} = internals.get(this)!;

@@ -174,6 +174,7 @@ export class LightDBEngine {
   /**
    * 데이터베이스의 특정 테이블 데이터를 삭제하는 메서드
    * @see {@link LiveDatabase.removeTable}
+   * @remarks 구독은 유지됩니다. 구독 해제가 필요하면 {@link off}를 호출하세요.
    */
   public async remove(table : string){
     return this.db.removeTable(table);
