@@ -507,4 +507,39 @@ describe("WebRTC 테스트", () => {
 
     await expect(promise).rejects.toThrow("[WebRtc] Connection Timeout");
   });
+
+  test("destroy() 후 예약된 재연결 타이머가 실행되지 않습니다.", async () => {
+    let closeCB : Function = () => {};
+    setupMockConnectionOnSpy((event, cb) => {
+      if(event === "open"){
+        cb();
+        return;
+      }
+
+      if(event === "close"){
+        closeCB = cb;
+        return;
+      }
+    });
+
+    const reconnectTimeout = 3000;
+    const mockPeer = await getInitWebRtc({
+      webRtc : new WebRTC({
+        reconnectTimeout
+      }),
+      afterInit : (webRtc) => {
+        webRtc.connect("test-peer");
+        return webRtc;
+      }
+    });
+
+    const connectSpy = vi.spyOn(mockPeer, "connect");
+
+    closeCB();
+    mockPeer.destroy();
+
+    vi.advanceTimersByTime(reconnectTimeout);
+
+    expect(connectSpy).not.toHaveBeenCalled();
+  });
 });

@@ -36,6 +36,11 @@ export class WebRTC {
   private reconnectCount = new Map<PeerID, number>();
 
   /**
+   * Peer별로 예약된 재연결 타이머 id를 관리하는 Map 객체
+   */
+  private reconnectTimeoutIds = new Map<PeerID, number>();
+
+  /**
    * 최대 재연결 횟수를 설정하는 변수
    * @remarks 외부에서 설정을 통해 변경될수 있습니다.
    */
@@ -76,6 +81,8 @@ export class WebRTC {
    * 시그널링 서버 재연결시 Open 이벤트 중복 실행되지 않기 위한 플래그 변수
    */
   private signalReconnected = false;
+
+  private destroyed = false;
 
   /**
    * 데이터베이스에 업데이트를 요청하는 메서드
@@ -135,6 +142,8 @@ export class WebRTC {
 
     if(this.initPromise) return this.initPromise.promise;
     if(this.peer) return Promise.resolve(this.peerId);
+
+    this.destroyed = false;
     
     if(resetStorage){
       this.onStorageClear();
@@ -351,7 +360,7 @@ export class WebRTC {
     const {[peerId] : disconnectPeer, ...rest} = this.connections;
     this.connections = rest;
 
-    if(!this.peer || this.peer.destroyed){
+    if(this.destroyed || !this.peer || this.peer.destroyed){
       this.customHandlers.disconnect(DisconnectType.SUCCESS);
       endDisconnect();
       return;
@@ -360,16 +369,29 @@ export class WebRTC {
     const reconnectCount = this.reconnectCount.get(peerId) || 0;
     if(reconnectCount === this.maxReconnectCount){
       this.reconnectCount.delete(peerId);
+      this.clearReconnectTimeout(peerId);
       this.customHandlers.disconnect(DisconnectType.RECONNECT_FAIL);
       endDisconnect();
       return;
     }
+
+    if(this.reconnectTimeoutIds.has(peerId)){
+      return;
+    }
     
     this.customHandlers.disconnect(DisconnectType.RECONNECT_RETRY);
-    setTimeout(() => {
+    const timeoutId = setTimeout(() => {
+      this.reconnectTimeoutIds.delete(peerId);
+
+      if(!this.peer || this.peer.destroyed){
+        return;
+      }
+
       this.reconnectCount.set(peerId, reconnectCount + 1);
       this.connect(peerId);
     }, this.reconnectTimeout);
+
+    this.reconnectTimeoutIds.set(peerId, timeoutId);
   }
 
   /**
@@ -416,10 +438,14 @@ export class WebRTC {
    * @remark 연결된 모든 피어들을 Close 처리됩니다.
    */
   public destroy(){
+    this.destroyed = true;
+
     if(this.signalReconnectTimeoutId !== null){
       clearTimeout(this.signalReconnectTimeoutId);
       this.signalReconnectTimeoutId = null;
     }
+
+    this.clearReconnectTimeouts();
 
     Object.values(this.connections).forEach(conn => conn.close());
     this.connections = {};
@@ -451,10 +477,31 @@ export class WebRTC {
     this.peerId = null;
     this.signalReconnected = false;
     this.signalReconnectCount = 0;
+    this.destroyed = false;
+    this.reconnectCount.clear();
+    this.clearReconnectTimeouts();
     if(this.signalReconnectTimeoutId !== null){
       clearTimeout(this.signalReconnectTimeoutId);
       this.signalReconnectTimeoutId = null;
     }
+  }
+
+  private clearReconnectTimeout(peerId : PeerID){
+    const timeoutId = this.reconnectTimeoutIds.get(peerId);
+    if(timeoutId === undefined){
+      return;
+    }
+
+    clearTimeout(timeoutId);
+    this.reconnectTimeoutIds.delete(peerId);
+  }
+
+  private clearReconnectTimeouts(){
+    for(const timeoutId of this.reconnectTimeoutIds.values()){
+      clearTimeout(timeoutId);
+    }
+
+    this.reconnectTimeoutIds.clear();
   }
 
   get connectionsLength(){
