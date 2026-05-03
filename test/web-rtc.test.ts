@@ -414,10 +414,14 @@ describe("WebRTC 테스트", () => {
     test("설정한 재연결 시간이후 재연결 실패시 에러를 던져야 한다.", async () => {
       let closeCB : Function = () => {};
       let errorCB : Function = () => {};
+      let openCount = 0;
 
       setupMockConnectionOnSpy((event, cb) => {
         if(event === "open"){
-          cb();
+          openCount += 1;
+          if(openCount === 1){
+            cb();
+          }
           return;
         }
 
@@ -443,8 +447,6 @@ describe("WebRTC 테스트", () => {
           return webRtc;
         }
       });
-      
-      vi.spyOn(mockPeer, "connect").mockImplementation(()=> Promise.resolve(true));
 
       const mockDisconnectHandler = vi.fn();
       mockPeer.setHandler('disconnect', mockDisconnectHandler);
@@ -456,7 +458,6 @@ describe("WebRTC 테스트", () => {
       errorCB();
 
       expect(mockDisconnectHandler).toHaveBeenCalledWith(DisconnectType.RECONNECT_FAIL);
-      // expect(() => errorCB()).toThrow("Connection Timeout");
     });
   });
 
@@ -506,6 +507,53 @@ describe("WebRTC 테스트", () => {
     vi.advanceTimersByTime(timeout);
 
     await expect(promise).rejects.toThrow("[WebRtc] Connection Timeout");
+  });
+
+  test("connection timeout 시 리스너를 정리하고 늦게 도착한 connection 이벤트를 무시해야 한다.", async () => {
+    const handlers = new Map<string, Function>();
+    const { mockConnection } = setupMockConnectionOnSpy((event, cb) => {
+      handlers.set(event, cb);
+    });
+
+    mockConnection.close = vi.fn();
+    const offSpy = vi.spyOn(mockConnection, "off");
+    vi.spyOn(MockPeer.prototype, "connect").mockReturnValue(mockConnection);
+
+    const mockPeer = await getInitWebRtc();
+    const connectionHandler = vi.fn();
+    const messageHandler = vi.fn();
+    const closeHandler = vi.fn();
+    const errorHandler = vi.fn();
+    const disconnectHandler = vi.fn();
+
+    mockPeer.setHandler(HandlerType.CONNECTION, connectionHandler);
+    mockPeer.setHandler(HandlerType.MESSAGE, messageHandler);
+    mockPeer.setHandler(HandlerType.CLOSE, closeHandler);
+    mockPeer.setHandler(HandlerType.ERROR, errorHandler);
+    mockPeer.setHandler(HandlerType.DISCONNECT, disconnectHandler);
+
+    const promise = mockPeer.connect("test-peer");
+
+    vi.advanceTimersByTime(5000);
+
+    await expect(promise).rejects.toThrow("[WebRtc] Connection Timeout");
+
+    handlers.get("open")?.();
+    handlers.get("data")?.(getCommunicationData(PeerDataType.UPDATE));
+    handlers.get("close")?.();
+    handlers.get("error")?.(new Error("Late Error"));
+
+    expect(mockConnection.close).toHaveBeenCalled();
+    expect(offSpy).toHaveBeenCalledWith("open", expect.any(Function));
+    expect(offSpy).toHaveBeenCalledWith("data", expect.any(Function));
+    expect(offSpy).toHaveBeenCalledWith("close", expect.any(Function));
+    expect(offSpy).toHaveBeenCalledWith("error", expect.any(Function));
+    expect(mockPeer.connectionsLength).toBe(0);
+    expect(connectionHandler).not.toHaveBeenCalled();
+    expect(messageHandler).not.toHaveBeenCalled();
+    expect(closeHandler).not.toHaveBeenCalled();
+    expect(errorHandler).not.toHaveBeenCalled();
+    expect(disconnectHandler).not.toHaveBeenCalled();
   });
 
   test("destroy() 후 예약된 재연결 타이머가 실행되지 않습니다.", async () => {

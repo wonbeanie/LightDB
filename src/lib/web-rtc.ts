@@ -271,62 +271,193 @@ export class WebRTC {
   private handleConnection = async (conn : DataConnection) => {
     if (this.connections[conn.peer]) return Promise.resolve(true);
 
-    let timeout : number | null = null;
+    const lifecycle = this.createConnectionLifecycle(conn);
 
-    const promise = new Promise((resolve, reject) => {
-      conn.on('open', () => {
+    const promise = new Promise<boolean>((resolve, reject) => {
+      const openHandler = () => {
+        if(lifecycle.isClosed()){
+          return;
+        }
+
+        lifecycle.removeListener("open", openHandler);
         this.connections[conn.peer] = conn;
         this.reconnectCount.set(conn.peer, 0);
   
         this.customHandlers.connection(conn.peer);
         if(this.onGetIsRoomChief()){
           this.syncDatabase(conn.peer);
-          resolve(true);
+          lifecycle.settle(resolve);
         }
-      });
+      };
+
+      lifecycle.addListener("open", openHandler);
 
       if(conn.listenerCount('data') === 0){
-        conn.on('data', (response) => {
+        const dataHandler = (response : unknown) => {
+          if(lifecycle.isClosed()){
+            return;
+          }
+
           const peerData = response as ResponseData;
           if(peerData.type === PeerDataType.SYNC){
             this.onSyncDatabase(Snapshot.deserialize(peerData.data));
-            resolve(true);
+            lifecycle.settle(resolve);
           }
           else {
             this.onUpdateDatabase(peerData.data);
           }
           this.customHandlers.message(peerData);
-        });
+        };
+
+        lifecycle.addListener("data", dataHandler);
       }
   
       if(conn.listenerCount('close') === 0){
-        conn.on('close', () => {
+        const closeHandler = () => {
+          if(!lifecycle.close()){
+            return;
+          }
+
           this.handleDisconnect(conn.peer, () => {
             this.customHandlers.close(conn.peer);
           });
-        });
+        };
+
+        lifecycle.addListener("close", closeHandler);
       }
   
       if(conn.listenerCount('error') === 0){
-        conn.on('error', (err) => {
+        const errorHandler = (err : unknown) => {
+          if(!lifecycle.close()){
+            return;
+          }
+
           this.handleDisconnect(conn.peer, ()=>{
             this.customHandlers.error(err);
           });
-        });
+        };
+
+        lifecycle.addListener("error", errorHandler);
       }
 
-      timeout = setTimeout(() => {
-        reject(errorHandler(ErrorType.WEBRTC, "Connection Timeout"));
-      }, 5000);
+      lifecycle.startTimeout(reject);
     });
 
-    const complete = await promise;
+    return promise;
+  }
 
-    if(complete && timeout){
+  /**
+   * 연결 시도 중 등록한 이벤트 리스너와 timeout을 한 번에 정리하기 위한 lifecycle helper를 생성합니다.
+   * @remarks timeout, close, error 이후 늦게 도착한 connection 이벤트가 상태를 다시 변경하지 않도록 사용합니다.
+   * @param conn - 정리 대상 {@link DataConnection} 객체
+   */
+  private createConnectionLifecycle(conn : DataConnection){
+    let timeout : number | null = null;
+    let settled = false;
+    let closed = false;
+    const cleanupHandlers : Array<() => void> = [];
+
+    const removeFromConnections = () => {
+      if(this.connections[conn.peer] !== conn){
+        return;
+      }
+
+      const {[conn.peer] : _closedConnection, ...rest} = this.connections;
+      this.connections = rest;
+    };
+
+    const clearConnectionTimeout = () => {
+      if(timeout === null){
+        return;
+      }
+
       clearTimeout(timeout);
+      timeout = null;
+    };
+
+    const cleanup = () => {
+      clearConnectionTimeout();
+      cleanupHandlers.splice(0).forEach(cleanupHandler => cleanupHandler());
+      removeFromConnections();
+    };
+
+    return {
+      addListener : (
+        event : "open" | "data" | "close" | "error",
+        handler : (...args : unknown[]) => void
+      ) => {
+        conn.on(event, handler);
+        cleanupHandlers.push(() => {
+          this.removeConnectionListener(conn, event, handler);
+        });
+      },
+
+      removeListener : (
+        event : "open" | "data" | "close" | "error",
+        handler : (...args : unknown[]) => void
+      ) => {
+        this.removeConnectionListener(conn, event, handler);
+      },
+
+      startTimeout : (reject : (reason ?: unknown) => void) => {
+        timeout = setTimeout(() => {
+          closed = true;
+          settled = true;
+          cleanup();
+          conn.close();
+          reject(errorHandler(ErrorType.WEBRTC, "Connection Timeout"));
+        }, 5000);
+      },
+
+      settle : (resolve : (value : boolean) => void) => {
+        if(settled){
+          return;
+        }
+
+        settled = true;
+        clearConnectionTimeout();
+        resolve(true);
+      },
+
+      close : () => {
+        if(closed){
+          return false;
+        }
+
+        closed = true;
+        cleanup();
+        return true;
+      },
+
+      isClosed : () => closed
+    };
+  }
+
+  /**
+   * DataConnection에 등록된 이벤트 리스너를 제거합니다.
+   * @remarks PeerJS 또는 EventEmitter 구현체에 따라 `off`와 `removeListener` 중 지원하는 API가 다를 수 있어 둘 다 대응합니다.
+   * @param conn - 리스너를 제거할 {@link DataConnection} 객체
+   * @param event - 리스너를 제거할 connection 이벤트 이름
+   * @param handler - 제거할 이벤트 핸들러
+   */
+  private removeConnectionListener(
+    conn : DataConnection,
+    event : "open" | "data" | "close" | "error",
+    handler : (...args : unknown[]) => void
+  ){
+    const removableConnection = conn as DataConnection & {
+      off ?: (event : string, handler : (...args : unknown[]) => void) => void;
+      removeListener ?: (event : string, handler : (...args : unknown[]) => void) => void;
+    };
+
+    if(typeof removableConnection.off === "function"){
+      removableConnection.off(event, handler);
+      return;
     }
 
-    return complete;
+    if(typeof removableConnection.removeListener === "function"){
+      removableConnection.removeListener(event, handler);
+    }
   }
 
   /**

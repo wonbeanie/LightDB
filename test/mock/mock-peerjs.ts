@@ -59,6 +59,15 @@ export class MockConnection {
 
   }
 
+  off(event : string, cb : Function){
+    this.removeListener(event, cb);
+  }
+
+  removeListener(event : string, cb : Function){
+    const listenerList = this.listener.get(event) ?? [];
+    this.listener.set(event, listenerList.filter(listener => listener !== cb));
+  }
+
   send(){
 
   }
