@@ -47,8 +47,16 @@ export class WebRTC {
    */
   private reconnectTimeout = 5000;
 
+  /**
+   * 시그널링 서버 재연결을 시도한 횟수
+   * @remarks {@link maxReconnectCount}를 넘지 않도록 재연결 시도 횟수를 추적합니다.
+   */
   private signalReconnectCount = 0;
 
+  /**
+   * 예약된 시그널링 서버 재연결 타이머 id
+   * @remarks 중복 재연결 예약을 방지하고 destroy/reset 시 타이머를 정리하기 위해 사용합니다.
+   */
   private signalReconnectTimeoutId : number | null = null;
 
   /**
@@ -207,6 +215,10 @@ export class WebRTC {
     }
   }
 
+  /**
+   * 시그널링 서버 재연결을 예약하는 메서드
+   * @remarks 이미 예약된 재연결이 있으면 중복 실행하지 않고, 재시도 횟수가 최대값을 넘으면 실패 상태를 전달합니다.
+   */
   private scheduleSignalReconnect(){
     if(!this.peer || this.peer.destroyed){
       this.customHandlers.signalReconnect(SignalReconnectType.FAIL);
