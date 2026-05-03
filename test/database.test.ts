@@ -178,7 +178,18 @@ describe("LiveDatabase 테스트", () => {
     expect(mockStorage.set).toHaveBeenCalledWith("/users", mockData);
   });
 
-  test("데이터 업데이트시 시간이 초과되었을때 에러를 던져야 한다.", async () => {
+  test("비방장 사용자가 빈 객체로 update하면 요청을 보내지 않고 현재 데이터베이스를 반환해야 한다.", async () => {
+    db.roomChief = false;
+    const onSendSpy = vi.spyOn(db, "onSend");
+
+    const result = await db.updateDB("/users", {});
+
+    expect(onSendSpy).not.toHaveBeenCalled();
+    expect(mockStorage.set).not.toHaveBeenCalled();
+    expect(result).toStrictEqual(db.database);
+  });
+
+  test("데이터베이스 업데이트 시간이 초과되었을 때 에러를 던져야 한다.", async () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.useFakeTimers();
     const promise = db.updateDB("/users", {

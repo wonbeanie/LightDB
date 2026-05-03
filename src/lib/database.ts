@@ -130,6 +130,10 @@ export class LiveDatabase {
    */
   public async updateDB(table : TableKey = DB_PATH.ROOT, data : DatabaseData, clear = false){
     try {
+      if(Object.keys(data).length === 0 && !clear){
+        return this.database;
+      }
+
       const ResolveQueueId : ResolveQueueId = `${Date.now()}-${this.lastResolveQueueId}`;
       this.lastResolveQueueId += 1;
 
