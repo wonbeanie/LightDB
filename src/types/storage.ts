@@ -4,6 +4,7 @@ import type { DatabaseData } from "./database.js";
  * LightDB에서 사용하는 저장소 엔진 인터페이스입니다.
  * @remarks
  * 브라우저의 Web Storage와 호환되도록 설계하였습니다.
+ * LightDB는 메타 정보와 테이블 데이터를 별도 키에 저장하므로 모든 키 기반 연산을 동일한 저장소 범위에서 처리해야 합니다.
  */
 export interface StorageEngine {
   /**
@@ -31,5 +32,11 @@ export type ParseDatabase = Record<string, DatabaseData>;
 export type ParseUpdateTimestamp = number;
 export interface ParseStorageData {
   database : ParseDatabase,
+  updateTimestamp : ParseUpdateTimestamp
+}
+
+export interface ParseStorageMeta {
+  version : 2,
+  tables : string[],
   updateTimestamp : ParseUpdateTimestamp
 }

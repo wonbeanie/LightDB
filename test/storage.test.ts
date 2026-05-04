@@ -6,6 +6,10 @@ describe("LightStorage 테스트", () => {
   let mockStorage: MemoryStorage;
   let lightStorage : LightStorage;
 
+  const getTableKey = (storageKey : string, table : string) => {
+    return `${storageKey}:table:${encodeURIComponent(table)}`;
+  };
+
   beforeEach(() => {
     vi.useFakeTimers({
       now : 1000
@@ -22,9 +26,14 @@ describe("LightStorage 테스트", () => {
   test("데이터를 설정하면 저장소에 저장되어야 한다.", () => {
     lightStorage.set('users', {id: 1, name : "test", age : 22});
 
-    const savedData = JSON.parse(mockStorage.getItem("LIGHT_DB")!);
-    expect(savedData.database.users).toEqual({id: 1, name : "test", age : 22});
-    expect(savedData.updateTimestamp).toBe(1000);
+    const savedMeta = JSON.parse(mockStorage.getItem("LIGHT_DB")!);
+    const savedTable = JSON.parse(mockStorage.getItem(getTableKey("LIGHT_DB", "users"))!);
+    expect(savedMeta).toEqual({
+      version : 2,
+      tables : ["users"],
+      updateTimestamp : 1000
+    });
+    expect(savedTable).toEqual({id: 1, name : "test", age : 22});
   });
 
   test("동기화 시 타임스탬프가 더 최신일 때만 업데이트해야 한다.", () => {
@@ -34,8 +43,7 @@ describe("LightStorage 테스트", () => {
     const newSnapshot = new Snapshot(new Map(), 2000);
     lightStorage.syncStorage(newSnapshot);
 
-    const data = mockStorage.getItem("LIGHT_DB")!;
-    expect(Snapshot.parse(data)).toStrictEqual(newSnapshot);
+    expect(lightStorage.getStorage()).toStrictEqual(newSnapshot);
   });
 
   test("특정 테이블의 데이터를 가져올 수 있어야 한다.", () => {
@@ -69,11 +77,13 @@ describe("LightStorage 테스트", () => {
     lightStorage.clear();
     expect(lightStorage.get('users')).toBeUndefined();
     expect(mockStorage.getItem('LIGHT_DB')).toBeNull();
+    expect(mockStorage.getItem(getTableKey("LIGHT_DB", "users"))).toBeNull();
     
     lightStorage.set('users', newUser);
     lightStorage.destroy();
     expect(lightStorage.get('users')).toBeUndefined();
     expect(mockStorage.getItem('LIGHT_DB')).toBeNull();
+    expect(mockStorage.getItem(getTableKey("LIGHT_DB", "users"))).toBeNull();
   });
 
   test("커스텀키를 통해 데이터가 저장소에 저장되어야 한다.", () => {
@@ -83,8 +93,10 @@ describe("LightStorage 테스트", () => {
     lightStorage.onSetStorageKey(TEST_KEY);
     lightStorage.set('users', newUser);
 
-    const savedData = JSON.parse(mockStorage.getItem(TEST_KEY)!);
-    expect(savedData.database.users).toEqual(newUser);
+    const savedMeta = JSON.parse(mockStorage.getItem(TEST_KEY)!);
+    const savedTable = JSON.parse(mockStorage.getItem(getTableKey(TEST_KEY, "users"))!);
+    expect(savedMeta.tables).toEqual(["users"]);
+    expect(savedTable).toEqual(newUser);
   });
 
   test("인스턴스 재생성 시 데이터가 유지되어야 한다.", () => {
@@ -104,14 +116,14 @@ describe("LightStorage 테스트", () => {
     lightStorage.onSetStorageKey(TEST_KEY1);
     lightStorage.set('users', newUser);
 
-    const savedData1 = JSON.parse(mockStorage.getItem(TEST_KEY1)!);
-    expect(savedData1.database.users).toEqual(newUser);
+    const savedData1 = JSON.parse(mockStorage.getItem(getTableKey(TEST_KEY1, "users"))!);
+    expect(savedData1).toEqual(newUser);
 
     lightStorage.onSetStorageKey(TEST_KEY2);
     lightStorage.set('monster', newMonster);
 
-    const savedData2 = JSON.parse(mockStorage.getItem(TEST_KEY2)!);
-    expect(savedData2.database.monster).toEqual(newMonster);
+    const savedData2 = JSON.parse(mockStorage.getItem(getTableKey(TEST_KEY2, "monster"))!);
+    expect(savedData2).toEqual(newMonster);
   });
 
   test("커스텀 키가 중간에 변경된다면 데이터도 변경되어야 한다.", () => {
@@ -122,18 +134,30 @@ describe("LightStorage 테스트", () => {
     lightStorage.onSetStorageKey(TEST_KEY1);
     lightStorage.set('users', newUser);
 
-    const savedData1 = JSON.parse(mockStorage.getItem(TEST_KEY1)!);
-    expect(savedData1.database.users).toEqual(newUser);
+    const savedData1 = JSON.parse(mockStorage.getItem(getTableKey(TEST_KEY1, "users"))!);
+    expect(savedData1).toEqual(newUser);
     expect(lightStorage.get('users')).toEqual(newUser);
 
     lightStorage.onSetStorageKey(TEST_KEY2);
     lightStorage.set('monster', newMonster);
 
-    const savedData2 = JSON.parse(mockStorage.getItem(TEST_KEY2)!);
-    expect(savedData2.database.monster).toEqual(newMonster);
-    expect(savedData2.database.users).toBeUndefined();
+    const savedMeta2 = JSON.parse(mockStorage.getItem(TEST_KEY2)!);
+    const savedData2 = JSON.parse(mockStorage.getItem(getTableKey(TEST_KEY2, "monster"))!);
+    expect(savedMeta2.tables).toEqual(["monster"]);
+    expect(savedData2).toEqual(newMonster);
+    expect(mockStorage.getItem(getTableKey(TEST_KEY2, "users"))).toBeNull();
     expect(lightStorage.get('monster')).toEqual(newMonster);
     expect(lightStorage.get('user')).toBeUndefined();
+  });
+
+  test("기존 단일 스냅샷 형식의 저장소 데이터를 불러올 수 있어야 한다.", () => {
+    const legacySnapshot = new Snapshot(new Map([["users", {id: 1, name : "test"}]]), 3000);
+    mockStorage.setItem("LIGHT_DB", Snapshot.stringify(legacySnapshot));
+
+    const newLightStorage = new LightStorage(mockStorage);
+
+    expect(newLightStorage.get("users")).toEqual({id: 1, name : "test"});
+    expect(newLightStorage.getSnapshot()).toStrictEqual(legacySnapshot);
   });
 
   describe("잘못된 데이터 로드 시", () => {
@@ -159,15 +183,17 @@ describe("LightStorage 테스트", () => {
   test("데이터를 제거하면 저장소에서 제거되어야 한다", () => {
     lightStorage.set('users', {id: 1, name : "test", age : 22});
     
-    const savedData = JSON.parse(mockStorage.getItem("LIGHT_DB")!);
-    expect(savedData.database.users).toEqual({id: 1, name : "test", age : 22});
-    expect(savedData.updateTimestamp).toBe(1000);
+    const savedMeta = JSON.parse(mockStorage.getItem("LIGHT_DB")!);
+    const savedTable = JSON.parse(mockStorage.getItem(getTableKey("LIGHT_DB", "users"))!);
+    expect(savedMeta.updateTimestamp).toBe(1000);
+    expect(savedTable).toEqual({id: 1, name : "test", age : 22});
 
     vi.advanceTimersByTime(1000);
     lightStorage.remove('users');
-    const removeData = JSON.parse(mockStorage.getItem("LIGHT_DB")!);
-    expect(removeData.database.users).toBeUndefined();
-    expect(removeData.updateTimestamp).toBe(2000);
+    const removeMeta = JSON.parse(mockStorage.getItem("LIGHT_DB")!);
+    expect(removeMeta.tables).toEqual([]);
+    expect(removeMeta.updateTimestamp).toBe(2000);
+    expect(mockStorage.getItem(getTableKey("LIGHT_DB", "users"))).toBeNull();
   });
 
   test("동기화 시 올바르지않는 Snapshot이 전달되면 에러를 던져야 한다.", () => {
