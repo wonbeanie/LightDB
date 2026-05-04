@@ -84,8 +84,8 @@ describe("engine 테스트", () => {
   });
 
   test("데이터베이스의 Update, Remove, Clear를 요청할수 있어야 한다.", async () => {
-    const updateDBSpy = vi.spyOn(engine.db, "updateDB").mockResolvedValue({});
-    const removeTableSpy = vi.spyOn(engine.db, "removeTable").mockResolvedValue({});;
+    const updateDBSpy = vi.spyOn(engine.db, "updateDB").mockResolvedValue(undefined);
+    const removeTableSpy = vi.spyOn(engine.db, "removeTable").mockResolvedValue(undefined);;
 
     const mockTable = "/users";
     const mockData = {

@@ -1,5 +1,5 @@
 import { Snapshot } from "../dto/snapshot.js";
-import type { Database, DatabaseData } from "../types/database.js";
+import type { Database, DatabaseData, DatabaseRecord } from "../types/database.js";
 import type { ParseStorageMeta, StorageEngine } from "../types/storage.js";
 import { ErrorType } from "../types/utils.js";
 import { MemoryStorage } from "./memory-storage.js";
@@ -13,6 +13,11 @@ export class LightStorage {
    * 현재 메모리에 로드된 데이터베이스 맵 객체
    */
   private database : Database = new Map();
+
+  /**
+   * 외부 조회를 위해 캐싱한 데이터베이스 레코드 객체
+   */
+  private databaseRecord : DatabaseRecord = {};
 
   /**
    * 저장소 버전 관리를 위한 Timestamp(ms)
@@ -53,6 +58,14 @@ export class LightStorage {
   }
 
   /**
+   * 현재 메모리에 로드된 전체 데이터베이스 레코드 캐시를 반환합니다.
+   * @returns 전체 데이터베이스 레코드 객체
+   */
+  public getDatabaseRecord(){
+    return this.databaseRecord;
+  }
+
+  /**
    * WebRtc를 통해 방장과의 저장소 동기화를 위한 메서드입니다.
    */
   public syncStorage(snapshot : Snapshot){
@@ -80,6 +93,7 @@ export class LightStorage {
   public clear(){
     this.removeTableStorageItems();
     this.database.clear();
+    this.databaseRecord = {};
     this.storage.removeItem(this.storageKey)
     this.updateTimestamp = 0;
   }
@@ -90,12 +104,17 @@ export class LightStorage {
   public destroy(){
     this.removeTableStorageItems();
     this.database.clear();
+    this.databaseRecord = {};
     this.storage.removeItem(this.storageKey);
     this.updateTimestamp = 0;
   }
 
   public set(table : string, data : DatabaseData){
     this.database.set(table, data);
+    this.databaseRecord = {
+      ...this.databaseRecord,
+      [table] : data
+    };
     this.updateTimestamp = Date.now();
     this.setTableStorage(table, data);
     this.setStorageMeta();
@@ -103,6 +122,9 @@ export class LightStorage {
 
   public remove(table : string){
     this.database.delete(table);
+    const nextRecord = {...this.databaseRecord};
+    delete nextRecord[table];
+    this.databaseRecord = nextRecord;
     this.updateTimestamp = Date.now();
     this.storage.removeItem(this.getTableStorageKey(table));
     this.setStorageMeta();
@@ -115,6 +137,7 @@ export class LightStorage {
   public setDatabase(snapshot: Snapshot){
     const prevTables = [...this.database.keys()];
     this.database = snapshot.database;
+    this.databaseRecord = Object.fromEntries(snapshot.database) as DatabaseRecord;
     this.updateTimestamp = snapshot.updateTimestamp;
     this.setStorage(snapshot, prevTables);
   }
@@ -188,6 +211,7 @@ export class LightStorage {
   private loadStorage(){
     const {database, updateTimestamp} = this.getStorage();
     this.database = database
+    this.databaseRecord = Object.fromEntries(database) as DatabaseRecord;
     this.updateTimestamp = updateTimestamp;
   }
 

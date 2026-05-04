@@ -56,6 +56,43 @@ describe("LightStorage 테스트", () => {
     expect(lightStorage.get('god')).toBeUndefined();
   });
 
+  test("전체 데이터베이스 레코드는 캐시된 객체로 가져올 수 있어야 한다.", () => {
+    const newUser = {id: 1, name : "test", age : 22};
+    const newMonster = {id: 2, name : "mons", age : 550};
+
+    lightStorage.set('users', newUser);
+    const userRecord = lightStorage.getDatabaseRecord();
+
+    lightStorage.set('monster', newMonster);
+    const monsterRecord = lightStorage.getDatabaseRecord();
+
+    expect(userRecord).toEqual({
+      users : newUser
+    });
+    expect(monsterRecord).toEqual({
+      users : newUser,
+      monster : newMonster
+    });
+    expect(monsterRecord).not.toBe(userRecord);
+  });
+
+  test("테이블 삭제와 전체 초기화 시 데이터베이스 레코드 캐시도 갱신되어야 한다.", () => {
+    const newUser = {id: 1, name : "test", age : 22};
+    const newMonster = {id: 2, name : "mons", age : 550};
+
+    lightStorage.set('users', newUser);
+    lightStorage.set('monster', newMonster);
+    lightStorage.remove('users');
+
+    expect(lightStorage.getDatabaseRecord()).toEqual({
+      monster : newMonster
+    });
+
+    lightStorage.clear();
+
+    expect(lightStorage.getDatabaseRecord()).toEqual({});
+  });
+
   test("전체 데이터베이스가 한 번에 교체되어야 한다.", () => {
     const newUser = {id: 1, name : "test", age : 22};
     const newMonster = {id: 2, name : "mons", age : 550};
@@ -68,6 +105,9 @@ describe("LightStorage 테스트", () => {
 
     expect(lightStorage.get('users')).toBeUndefined();
     expect(lightStorage.get('monster')).toEqual(newMonster);
+    expect(lightStorage.getDatabaseRecord()).toEqual({
+      monster : newMonster
+    });
   });
 
   test("메모리와 저장소에서 데이터가 없어져야 한다.", () => {
@@ -157,6 +197,9 @@ describe("LightStorage 테스트", () => {
     const newLightStorage = new LightStorage(mockStorage);
 
     expect(newLightStorage.get("users")).toEqual({id: 1, name : "test"});
+    expect(newLightStorage.getDatabaseRecord()).toEqual({
+      users : {id: 1, name : "test"}
+    });
     expect(newLightStorage.getSnapshot()).toStrictEqual(legacySnapshot);
   });
 

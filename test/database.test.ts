@@ -13,6 +13,7 @@ describe("LiveDatabase 테스트", () => {
   beforeEach(()=>{
     mockStorage = vi.mockObject(new LightStorage(new MemoryStorage()));
     mockStorage.getDatabase = vi.fn().mockReturnValue(new Map());
+    mockStorage.getDatabaseRecord = vi.fn().mockReturnValue({});
     
     db = new LiveDatabase(mockStorage);
     onUpdateCompleteSpy = vi.spyOn(db, "onUpdateComplete");
@@ -111,7 +112,7 @@ describe("LiveDatabase 테스트", () => {
           clear : true
         });
 
-        resolve({});
+        resolve();
       })
     });
 
@@ -155,7 +156,7 @@ describe("LiveDatabase 테스트", () => {
 
   test("데이터를 가져올때 저장소에서 가져와야 한다.", () => {
     db.database;
-    expect(mockStorage.getDatabase).toHaveBeenCalled();
+    expect(mockStorage.getDatabaseRecord).toHaveBeenCalled();
   });
 
   test("방장시 데이터를 업데이트하면 다른 사용자에게 변경사항을 전달해야 한다.", async () => {
@@ -212,15 +213,14 @@ describe("LiveDatabase 테스트", () => {
     expect(mockStorage.set).toHaveBeenCalledWith("/users", mockData);
   });
 
-  test("비방장 사용자가 빈 객체로 update하면 요청을 보내지 않고 현재 데이터베이스를 반환해야 한다.", async () => {
+  test("비방장 사용자가 빈 객체로 update하면 요청을 보내지 않아야 한다.", async () => {
     db.roomChief = false;
     const onSendSpy = vi.spyOn(db, "onSend");
 
-    const result = await db.updateDB("/users", {});
+    await db.updateDB("/users", {});
 
     expect(onSendSpy).not.toHaveBeenCalled();
     expect(mockStorage.set).not.toHaveBeenCalled();
-    expect(result).toStrictEqual(db.database);
   });
 
   test("데이터베이스 업데이트 시간이 초과되었을 때 에러를 던져야 한다.", async () => {

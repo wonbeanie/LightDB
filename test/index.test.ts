@@ -131,9 +131,9 @@ describe("Entry 테스트", () => {
     });
 
     test("데이터 업데이트 및 삭제 요청이 엔진으로 올바르게 위임되어야 한다.", async () => {
-      const updateSpy = vi.spyOn(OriginEngine.prototype, "update").mockResolvedValue({});
-      const clearSpy = vi.spyOn(OriginEngine.prototype, "clear").mockResolvedValue({});
-      const removeSpy = vi.spyOn(OriginEngine.prototype, "remove").mockResolvedValue({});
+      const updateSpy = vi.spyOn(OriginEngine.prototype, "update").mockResolvedValue(undefined);
+      const clearSpy = vi.spyOn(OriginEngine.prototype, "clear").mockResolvedValue(undefined);
+      const removeSpy = vi.spyOn(OriginEngine.prototype, "remove").mockResolvedValue(undefined);
     
       await lightDB.update("/users", { name: "mons" });
       expect(updateSpy).toHaveBeenCalledWith("/users", { name: "mons" });

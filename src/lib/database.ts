@@ -1,7 +1,7 @@
 import type { Snapshot } from "../dto/snapshot.js";
 import { LightStorage } from "./storage.js";
 import { deepMerge, errorHandler } from "./utils.js";
-import { DB_PATH, type DatabaseConfig, type DatabaseData, type DatabaseRecord, type PendingEvents, type Listener, type ListenerHandler, type ListenerKey, type ResolveQueueId, type TableKey, type UpdateResolveQueue } from "../types/database.js";
+import { DB_PATH, type DatabaseConfig, type DatabaseData, type PendingEvents, type Listener, type ListenerHandler, type ListenerKey, type ResolveQueueId, type TableKey, type UpdateResolveQueue } from "../types/database.js";
 import type { WebRtcDispatchPayload } from "../types/web-rtc.js";
 import { ErrorType } from "../types/utils.js";
 
@@ -135,13 +135,13 @@ export class LiveDatabase {
    * @param table - 업데이트할 테이블 키 (기본값: {@link DB_PATH.ROOT})
    * @param data - 저장할 {@link DatabaseData} 객체
    * @param [clear] - true일 경우 초기화, 기본값일 경우 전체 초기화 (선택 사항)
-   * @returns 업데이트가 완료된 후의 전체 데이터베이스 레코드 {@link DatabaseRecord}
+   * @returns 업데이트 완료 후 resolve되는 Promise
    * @throws 업데이트 타임아웃 또는 처리 실패 시 발생
    */
   public async updateDB(table : TableKey = DB_PATH.ROOT, data : DatabaseData, clear = false){
     try {
       if(Object.keys(data).length === 0 && !clear){
-        return this.database;
+        return;
       }
 
       const ResolveQueueId : ResolveQueueId = `${Date.now()}-${this.lastResolveQueueId}`;
@@ -154,7 +154,7 @@ export class LiveDatabase {
           table,
           clear,
         });
-        return this.database;
+        return;
       }
       
       const promise = this.checkUpdate(ResolveQueueId);
@@ -168,7 +168,7 @@ export class LiveDatabase {
         });
       }
 
-      return await promise;
+      await promise;
     }
     catch(error){
       throw errorHandler(ErrorType.DATABASE, 'Database Update Failed:', error);
@@ -178,10 +178,10 @@ export class LiveDatabase {
   /**
    * 비동기적인 DB 업데이트를 감지를 위해 큐에 추가하는 메서드
    */
-  private async checkUpdate(id : ResolveQueueId) : Promise<DatabaseRecord>{
+  private async checkUpdate(id : ResolveQueueId) : Promise<void>{
     return new Promise((resolve, reject)=>{
       if(this.roomChief){
-        resolve(this.database);
+        resolve();
         return;
       }
       
@@ -246,7 +246,7 @@ export class LiveDatabase {
 
     await listenerFlushPromise;
     this.onUpdateComplete();
-    resolveData?.resolve(this.database);
+    resolveData?.resolve();
   }
 
   /**
@@ -381,10 +381,10 @@ export class LiveDatabase {
    * @remarks 테이블 구독은 유지됩니다. 구독 해제가 필요하면 {@link removeDBListener}를 호출하세요.
    */
   public async removeTable(table : TableKey){
-    return this.updateDB(table, {}, true);
+    await this.updateDB(table, {}, true);
   }
 
   get database(){
-    return Object.fromEntries(this.storage.getDatabase()) as DatabaseRecord;
+    return this.storage.getDatabaseRecord();
   }
 }

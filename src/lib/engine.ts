@@ -131,18 +131,19 @@ export class LightDBEngine {
 
   /**
    * 데이터베이스의 특정 테이블 데이터를 업데이트하는 메서드
+   * @returns 업데이트 완료 후 resolve되는 Promise
    * @see {@link LiveDatabase.updateDB}
    */
   public async update(table : string = DB_PATH.ROOT, data : DatabaseData){
-    return this.db.updateDB(table, data);
+    await this.db.updateDB(table, data);
   }
 
   /**
    * 데이터베이스의 모든 데이터를 삭제하고 초기화하는 메서드
-   * @returns - 전체 데이터베이스 레코드 {@link DatabaseRecord}를 반환하는 Promise
+   * @returns 초기화 완료 후 resolve되는 Promise
    */
   public async clear(){
-    return this.db.updateDB(DB_PATH.ROOT, {}, true);
+    await this.db.updateDB(DB_PATH.ROOT, {}, true);
   }
 
   /**
@@ -175,9 +176,10 @@ export class LightDBEngine {
    * 데이터베이스의 특정 테이블 데이터를 삭제하는 메서드
    * @see {@link LiveDatabase.removeTable}
    * @remarks 구독은 유지됩니다. 구독 해제가 필요하면 {@link off}를 호출하세요.
+   * @returns 삭제 완료 후 resolve되는 Promise
    */
   public async remove(table : string){
-    return this.db.removeTable(table);
+    await this.db.removeTable(table);
   }
 
   /**

@@ -1,5 +1,5 @@
 import { LightDBEngine } from "./lib/engine.js";
-import { DB_PATH, type DatabaseData, type TableKey } from "./types/database.js";
+import { DB_PATH, type DatabaseData, type DatabaseRecord } from "./types/database.js";
 import type { CreateRoomConfig, JoinRoomConfig } from "./types/engine.js";
 import type { Config } from "./types/light-db.js";
 import type { StorageEngine } from "./types/storage.js";
@@ -18,7 +18,7 @@ export class LightDB {
   /**
    * 현재 메모리에 로드된 데이터베이스의 전체 레코드 객체
    */
-  public database = {};
+  public database : DatabaseRecord = {};
 
   /**
    * 방장의 상태를 구분하는 변수
@@ -58,7 +58,7 @@ export class LightDB {
 
   /**
    * 데이터베이스 방을 생성하고 자신을 방장으로 설정합니다.
-   * @param [config.storageKey] - 저장될 저장소의 키 (선택사항)
+   * @param [config.storageKey] - 저장소 그룹의 기준 키 (선택사항)
    * @param [config.resetStorage] - 기존에 저장된 저장소를 초기화하여 시작할지 여부 (기본값 : false)
    * @returns 생성된 방의 Peer 아이디를 담은 Promise
    */
@@ -105,18 +105,20 @@ export class LightDB {
    * @remarks 특정 키의 값을 'null'로 설정하면 해당 데이터가 데이터베이스에서 삭제됩니다.
    * @param table - 업데이트할 테이블 키 (기본값: {@link DB_PATH.ROOT})
    * @param data - 저장할 {@link DatabaseData} 객체
+   * @returns 업데이트 완료 후 resolve되는 Promise
    */
   async update(table : string = DB_PATH.ROOT, data : DatabaseData){
     const {engine} = internals.get(this)!;
-    return engine.update(table, data);
+    await engine.update(table, data);
   }
 
   /**
    * 데이터베이스의 모든 데이터를 삭제하고 초기화하는 메서드
+   * @returns 초기화 완료 후 resolve되는 Promise
    */
   async clear(){
     const {engine} = internals.get(this)!;
-    return engine.clear();
+    await engine.clear();
   }
 
   /**
@@ -151,10 +153,11 @@ export class LightDB {
    * 데이터베이스의 특정 테이블 데이터를 삭제하는 메서드
    * @param table - 삭제할 테이블 키
    * @remarks 구독은 유지됩니다. 구독 해제가 필요하면 {@link off}를 호출하세요.
+   * @returns 삭제 완료 후 resolve되는 Promise
    */
   async remove(table: string){
     const {engine} = internals.get(this)!;
-    return engine.remove(table);
+    await engine.remove(table);
   }
 }
 
