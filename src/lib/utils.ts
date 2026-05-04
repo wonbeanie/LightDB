@@ -31,12 +31,26 @@ export function formatNow(): string {
   return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-export function deepMerge(target : DatabaseData, source : DatabaseData) {
-  const result = structuredClone(target);
-  return mergeInto(result, source);
+/**
+ * 변경된 경로만 복사하면서 두 데이터 객체를 병합합니다.
+ * @remarks `null` 값은 해당 키를 삭제하는 신호로 처리하며, 배열과 일반 객체가 아닌 값은 병합하지 않고 교체합니다.
+ * @param target - 기준이 되는 데이터 객체
+ * @param source - 병합할 변경 데이터 객체
+ * @returns 변경이 있으면 변경 경로만 복사한 새 객체, 변경이 없으면 기존 객체
+ */
+export function deepMerge(target : DatabaseData, source : DatabaseData) : DatabaseData {
+  return mergeWithStructuralSharing(target, source);
 }
 
-function mergeInto(target: DatabaseData, source: DatabaseData){
+/**
+ * structural sharing을 유지하며 변경 데이터만 병합합니다.
+ * @param target - 기준 객체
+ * @param source - 병합할 변경 객체
+ * @returns 변경된 경로만 새 참조로 교체한 객체
+ */
+function mergeWithStructuralSharing(target: DatabaseData, source: DatabaseData) : DatabaseData{
+  let result : DatabaseData | null = null;
+
   for(const key in source){
     if (!Object.hasOwn(source, key)) continue;
 
@@ -44,18 +58,44 @@ function mergeInto(target: DatabaseData, source: DatabaseData){
     const targetVal = target[key];
 
     if(sourceVal === null){
-      delete target[key];
+      if(!Object.hasOwn(target, key)) continue;
+
+      result ??= {...target};
+      delete result[key];
     }
-    else if(sourceVal && typeof sourceVal === 'object' && !Array.isArray(sourceVal)) {
-      target[key] = mergeInto(
-        (targetVal && typeof targetVal === 'object' ? targetVal : {}) as DatabaseData,
-        sourceVal as DatabaseData
-      );
+    else if(isPlainObject(sourceVal) && isPlainObject(targetVal)) {
+      const nextVal = mergeWithStructuralSharing(targetVal, sourceVal);
+      if(!Object.is(nextVal, targetVal)){
+        result ??= {...target};
+        result[key] = nextVal;
+      }
+    }
+    else if(isPlainObject(sourceVal)) {
+      const nextVal = mergeWithStructuralSharing({}, sourceVal);
+      result ??= {...target};
+      result[key] = nextVal;
     }
     else {
-      target[key] = sourceVal;
+      if(!Object.is(sourceVal, targetVal)){
+        result ??= {...target};
+        result[key] = sourceVal;
+      }
     }
   }
 
-  return target;
+  return result ?? target;
+}
+
+/**
+ * 값이 병합 가능한 일반 객체인지 확인합니다.
+ * @param value - 확인할 값
+ * @returns 일반 객체이면 true
+ */
+function isPlainObject(value : unknown) : value is DatabaseData{
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.getPrototypeOf(value) === Object.prototype
+  );
 }
