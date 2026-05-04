@@ -160,7 +160,7 @@ describe("engine 테스트", () => {
     engine.rtc.onGetSnapshot();
     expect(snapshotSpy).toHaveBeenCalled();
 
-    const onValueSpy = vi.spyOn(engine.db, "onValue").mockImplementation(() => {})
+    const onValueSpy = vi.spyOn(engine.db, "onValue").mockResolvedValue(undefined)
     engine.rtc.onUpdateDatabase({id : "1", table : "/users", data : {}});
     expect(onValueSpy).toHaveBeenCalled();
     

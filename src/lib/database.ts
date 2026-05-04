@@ -54,9 +54,19 @@ export class LiveDatabase {
   private isFlushing = false;
 
   /**
-   * mickrotask에 예약된 상태를 확인하는 변수
+   * microtask에 예약된 상태를 확인하는 변수
    */
   private isFlushScheduled = false;
+
+  /**
+   * 예약된 리스너 flush가 끝날 때까지 대기하기 위한 Promise
+   */
+  private flushPromise : Promise<void> | null = null;
+
+  /**
+   * 예약된 리스너 flush의 완료를 알리는 resolve 함수
+   */
+  private resolveFlushPromise : (() => void) | null = null;
 
   /**
    * WebRtc에 방장에게 변경사항을 요청하는 메서드
@@ -138,12 +148,13 @@ export class LiveDatabase {
       this.lastResolveQueueId += 1;
 
       if(this.roomChief){
-        this.onValue({
+        await this.onValue({
           id : ResolveQueueId,
           data,
           table,
           clear,
-        }, false);
+        });
+        return this.database;
       }
       
       const promise = this.checkUpdate(ResolveQueueId);
@@ -157,10 +168,7 @@ export class LiveDatabase {
         });
       }
 
-      const newDatabase = await promise;
-
-      this.onUpdateComplete();
-      return newDatabase;
+      return await promise;
     }
     catch(error){
       throw errorHandler(ErrorType.DATABASE, 'Database Update Failed:', error);
@@ -196,10 +204,18 @@ export class LiveDatabase {
    * @remarks 최종 데이터베이스의 `null` 값은 해당 키를 물리적으로 제거하는 '삭제' 신호로 처리됩니다.
    * @param payload - 데이터 업데이트에 필요한 {@link WebRtcDispatchPayload} 객체
    * @param [send] - 업데이트 완료 후 방장에게 데이터를 보낼 것인지에 대한 변수 (기본값: true)
+   * @returns 리스너 실행과 업데이트 완료 콜백 처리가 끝나면 resolve되는 Promise
    */
-  public onValue({id, table, data, clear = false} : WebRtcDispatchPayload, send = true){
+  public async onValue({id, table, data, clear = false} : WebRtcDispatchPayload, send = true){
     if(this.expiredUpdateIds.has(id)){
       return;
+    }
+
+    let listenerFlushPromise = Promise.resolve();
+    const resolveData = this.updateResolveQueue.get(id);
+    if(resolveData){
+      clearTimeout(resolveData.timeoutId);
+      this.updateResolveQueue.delete(id);
     }
 
     if(clear){
@@ -216,20 +232,9 @@ export class LiveDatabase {
       const newDatabase = deepMerge(prevDatabase, data);
 
       this.storage.set(table, newDatabase);
-      this.emitCallback(table, newDatabase);
+      listenerFlushPromise = this.emitCallback(table, newDatabase);
     }
 
-    if(this.updateResolveQueue.size > 0){
-      const resolveData = this.updateResolveQueue.get(id);
-      if(resolveData){
-        const {resolve, timeoutId} = resolveData;
-        clearTimeout(timeoutId);
-        resolve(this.database);
-        this.updateResolveQueue.delete(id);
-      }
-    }
-
-    
     if(this.roomChief && send){
       this.onSend({
         id,
@@ -239,7 +244,9 @@ export class LiveDatabase {
       });
     }
 
+    await listenerFlushPromise;
     this.onUpdateComplete();
+    resolveData?.resolve(this.database);
   }
 
   /**
@@ -248,18 +255,30 @@ export class LiveDatabase {
    * @param table 업데이트한 Table Key
    * @param data 최신 {@link DatabaseData} 객체
    */
-  private emitCallback(table : TableKey, data : DatabaseData){
+  private emitCallback(table : TableKey, data : DatabaseData) : Promise<void>{
     this.pendingEvents.push({
       table,
       data
     });
 
     if(this.isFlushScheduled || this.isFlushing){
-      return;
+      return this.flushPromise ?? Promise.resolve();
     }
 
     this.isFlushScheduled = true;
-    queueMicrotask(() => this.flushQueue());
+    this.flushPromise = new Promise((resolve) => {
+      this.resolveFlushPromise = resolve;
+    });
+
+    return new Promise((resolve) => {
+      queueMicrotask(() => {
+        this.flushQueue();
+        this.resolveFlushPromise?.();
+        this.flushPromise = null;
+        this.resolveFlushPromise = null;
+        resolve();
+      });
+    });
   }
 
   /**

@@ -41,7 +41,7 @@ describe("LiveDatabase 테스트", () => {
       age : 22
     }
     db.addDBListener("/users", mockHandler);
-    db.onValue({
+    await db.onValue({
       id : "test",
       table : "/users",
       data : mockData
@@ -52,12 +52,35 @@ describe("LiveDatabase 테스트", () => {
     });
 
     db.removeDBListener("/users");
-    db.onValue({
+    await db.onValue({
       id : "test",
       table : "/users",
       data : mockData
     });
     expect(mockHandler).toHaveBeenCalledTimes(1);
+  });
+
+  test("onUpdateComplete는 listener 실행 이후에 호출되어야 한다.", async () => {
+    const order : string[] = [];
+    const mockData = {
+      id : 1,
+      name : "wonbeanie"
+    };
+
+    db.addDBListener("/users", () => {
+      order.push("listener");
+    });
+    db.onUpdateComplete = () => {
+      order.push("complete");
+    };
+
+    await db.onValue({
+      id : "test",
+      table : "/users",
+      data : mockData
+    });
+
+    expect(order).toEqual(["listener", "complete"]);
   });
 
   test("데이터 삭제시 리스너와 저장소에서 삭제되어야 한다", async () => {
@@ -81,7 +104,7 @@ describe("LiveDatabase 테스트", () => {
 
     vi.spyOn(db, "updateDB").mockImplementation((table : TableKey = DB_PATH.ROOT, data : DatabaseData, clear = false)=>{
       return new Promise((resolve, reject) => {
-        db.onValue({
+        void db.onValue({
           id : "test",
           table,
           data : {},
@@ -92,12 +115,12 @@ describe("LiveDatabase 테스트", () => {
       })
     });
 
-    db.removeTable("/users");
+    await db.removeTable("/users");
     expect(mockHandler).toHaveBeenCalledTimes(1);
     expect(mockStorage.remove).toHaveBeenCalledWith("/users");
     expect(mockStorage.get("/users")).toBeUndefined();
 
-    db.onValue({
+    await db.onValue({
       id : "test-after-remove",
       table : "/users",
       data : mockData
@@ -109,8 +132,8 @@ describe("LiveDatabase 테스트", () => {
     });
   });
 
-  test("루트 테이블을 지정하면 전부 초기화 되어야 한다.", () => {
-    db.onValue({
+  test("루트 테이블을 지정하면 전부 초기화 되어야 한다.", async () => {
+    await db.onValue({
       id : "test",
       table : DB_PATH.ROOT,
       data : {},
@@ -162,13 +185,13 @@ describe("LiveDatabase 테스트", () => {
       data : mockData,
       clear : false
     });
-    expect(onUpdateCompleteSpy).toHaveBeenCalled();
+    expect(onUpdateCompleteSpy).toHaveBeenCalledOnce();
   });
 
   test("사용자시 데이터를 업데이트하면 방장에게 요청을 보내고 응답을 받을 때까지 대기해야 한다.", async () => {
     db.roomChief = false;
     const onSendSpy = vi.spyOn(db, "onSend").mockImplementation((data : WebRtcDispatchPayload) => {
-      db.onValue(data);
+      void db.onValue(data);
     });
 
     const mockData = {
@@ -234,7 +257,7 @@ describe("LiveDatabase 테스트", () => {
     await expect(promise).rejects.toThrow("[Database] Database Update Failed:");
 
     if(sentPayload){
-      timeoutDB.onValue(sentPayload);
+      await timeoutDB.onValue(sentPayload);
     }
 
     expect(mockStorage.set).not.toHaveBeenCalled();
@@ -257,7 +280,7 @@ describe("LiveDatabase 테스트", () => {
       throw new Error("/users Test Error");
     });
     
-    errorDB.onValue({
+    await errorDB.onValue({
       id : "test",
       table : "/users",
       data : {}
@@ -278,7 +301,7 @@ describe("LiveDatabase 테스트", () => {
       age : 22
     };
 
-    db.onValue({
+    await db.onValue({
       id : "test",
       table : "/users",
       data : {
@@ -300,7 +323,7 @@ describe("LiveDatabase 테스트", () => {
     let flag = false;
     db.addDBListener("/users", async () => {
       if(!flag){
-        db.onValue({
+        void db.onValue({
           id : "test",
           table : "/users",
           data : {
@@ -314,7 +337,7 @@ describe("LiveDatabase 테스트", () => {
       flag = true;
     });
 
-    db.onValue({
+    await db.onValue({
       id : "test",
       table : "/users",
       data : {
