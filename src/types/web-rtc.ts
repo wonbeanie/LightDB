@@ -1,5 +1,5 @@
-import type { DataConnection } from "peerjs";
-import type { DatabaseData, DatabaseEntries, SnapshotPayload, TableKey } from "./database.js";
+import type { DataConnection, PeerOptions } from "peerjs";
+import type { DatabaseData, SnapshotPayload, TableKey } from "./database.js";
 
 export const HandlerType = {
   CONNECTION : "connection",
@@ -78,6 +78,7 @@ export type SignalReconnectHandler = (state ?: SignalReconnectType) => void;
 export interface WebRtcConfig {
   maxReconnectCount ?: number;
   reconnectTimeout ?: number;
+  peerOptions ?: PeerOptions;
 }
 
 export const enum PeerDataType {

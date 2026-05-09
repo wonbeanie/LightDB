@@ -103,7 +103,7 @@ LightDB는 기본 사용만으로도 충분히 동작하지만,
 
 ### 고급 설정
 
-인스턴스 생성 시 WebRTC 재연결 전략이나 업데이트 타임아웃 등을 직접 설정할 수 있습니다.
+인스턴스 생성 시 WebRTC 재연결 전략, PeerJS 시그널링 서버, 업데이트 타임아웃 등을 직접 설정할 수 있습니다.
 
 ```javascript
 import { LightDB } from '@wonbeanie/lightdb';
@@ -114,13 +114,23 @@ const db = new LightDB({
   },
   webRtc: {
     maxReconnectCount: 10, // 최대 재연결 시도 횟수
-    reconnectTimeout: 2000 // 재연결 간격 (ms)
+    reconnectTimeout: 2000, // 재연결 간격 (ms)
+    peerOptions: { // PeerJS의 PeerOptions를 그대로 전달합니다.
+      host: 'example.com',
+      port: 443,
+      path: '/peerjs',
+      secure: true
+    }
   },
   onError: (table, err) => { // on메서드로 구독한 handler에서 에러 발생시 호출되는 메서드
     console.error(`${table} 에러:`, err);
   }
 }, customStorage); // LocalStorage 대신 사용할 커스텀 저장소 주입 가능
 ```
+
+> 방장과 참여자는 동일한 PeerJS 시그널링 서버 설정을 사용해야 합니다.
+>
+> 서로 다른 서버를 사용하면 `roomId`를 알아도 Peer 간 연결이 성립하지 않을 수 있습니다.
 
 ### 💾 커스텀 저장소
 

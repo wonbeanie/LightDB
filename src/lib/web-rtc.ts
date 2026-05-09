@@ -1,4 +1,4 @@
-import type { DataConnection, Peer as PeerType } from "peerjs";
+import type { DataConnection, PeerOptions, Peer as PeerType } from "peerjs";
 import { errorHandler } from "./utils.js";
 import { Snapshot } from "../dto/snapshot.js";
 import type { SnapshotPayload } from "../types/database.js";
@@ -117,12 +117,18 @@ export class WebRTC {
   public onStorageClear : () => void = () => {};
 
   /**
+   * PeerJS의 Peer 객체를 생성할 때 사용할 옵션
+   */
+  private peerOptions : PeerOptions;
+
+  /**
    * 새로운 WebRtc 인스턴스를 생성
    * @param [config] - 외부 커스텀 {@link WebRtcConfig} 객체 (선택 사항)
    */
   constructor(config : WebRtcConfig = {}){
     this.maxReconnectCount = config?.maxReconnectCount ?? this.maxReconnectCount;
     this.reconnectTimeout = config?.reconnectTimeout ?? this.reconnectTimeout;
+    this.peerOptions = config?.peerOptions ?? {};
   }
 
   /**
@@ -176,7 +182,7 @@ export class WebRTC {
     try{
       const Peer = PeerModule.Peer || PeerModule.default;
 
-      const peer = new Peer();
+      const peer = new Peer(this.peerOptions);
       this.peer = peer;
 
       peer.on('open', (id) => {

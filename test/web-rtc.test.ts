@@ -40,6 +40,27 @@ describe("WebRTC 테스트", () => {
       await Promise.all([firstPromise, secondPromise]);
     });
 
+    test("PeerJS Peer 생성 시 peerOptions를 전달해야 한다.", async () => {
+      const peerOptions = {
+        host: "example.com",
+        port: 443,
+        path: "/peerjs",
+        secure: true
+      };
+      const MockPeerModule = await import("peerjs");
+      const peerSpy = vi.spyOn(MockPeerModule, "Peer").mockImplementation(function(){
+        return new MockPeer();
+      });
+
+      const webRtc = new WebRTC({
+        peerOptions
+      });
+
+      await webRtc.init();
+
+      expect(peerSpy).toHaveBeenCalledWith(peerOptions);
+    });
+
     test("초기화 도중 피어 객체에 Error 이벤트가 발생했을때 에러를 던져야 한다.", async () => {
       setupMockPeerOnSpy((event, cb)=>{
         if(event === "error"){
