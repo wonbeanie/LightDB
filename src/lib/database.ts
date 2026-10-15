@@ -44,6 +44,12 @@ export class LiveDatabase {
   private lastResolveQueueId = 1;
 
   /**
+   * 피어 간 update id 충돌을 막기 위한 인스턴스 고유 값
+   * @remarks 같은 ms에 서로 다른 피어가 같은 순번의 update를 보내면 id가 겹쳐, 남의 update 응답으로 내 update가 먼저 resolve될 수 있었습니다.
+   */
+  private readonly instanceId = (globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2)).slice(0, 8);
+
+  /**
    * {@link flushQueue}가 실행되기 전까지 이벤트를 쌓아두는 버퍼
    */
   private pendingEvents : PendingEvents[] = [];
@@ -144,7 +150,7 @@ export class LiveDatabase {
         return;
       }
 
-      const ResolveQueueId : ResolveQueueId = `${Date.now()}-${this.lastResolveQueueId}`;
+      const ResolveQueueId : ResolveQueueId = `${this.instanceId}-${Date.now()}-${this.lastResolveQueueId}`;
       this.lastResolveQueueId += 1;
 
       if(this.roomChief){
