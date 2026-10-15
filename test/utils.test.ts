@@ -9,7 +9,8 @@ describe("유틸리티 테스트", () => {
 
     test("현재 날짜를 포맷팅하여 반환해야된다.", ()=>{
       vi.useFakeTimers();
-      const mockDate = new Date(1776150246047);
+      // 타임존과 무관하게 동작하도록 로컬 시각으로 생성
+      const mockDate = new Date(2026, 3, 14, 16, 4, 6);
       vi.setSystemTime(mockDate);
 
       expect(formatNow()).toBe("2026-04-14 16:04:06");
