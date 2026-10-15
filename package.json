@@ -23,7 +23,7 @@
     "build": "tsup src/index.ts --format cjs,esm && tsc --emitDeclarationOnly --declaration --outDir dist",
     "test": "vitest",
     "test:coverage": "vitest --coverage",
-    "publish": "npm run build && npm publish"
+    "prepublishOnly": "npm run build"
   },
   "type": "module",
   "keywords": [
