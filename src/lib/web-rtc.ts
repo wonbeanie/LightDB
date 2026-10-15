@@ -525,7 +525,13 @@ export class WebRTC {
       }
 
       this.reconnectCount.set(peerId, reconnectCount + 1);
-      this.connect(peerId);
+      try{
+        // 재연결 시도가 timeout 으로 reject 되어도 처리되지 않은 Promise rejection 이 남지 않도록 핸들러로 전달
+        this.connect(peerId).catch((err : unknown) => this.customHandlers.error(err));
+      }
+      catch(err){
+        this.customHandlers.error(err);
+      }
     }, this.reconnectTimeout);
 
     this.reconnectTimeoutIds.set(peerId, timeoutId);
